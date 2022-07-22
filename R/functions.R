@@ -23,8 +23,19 @@ get_osm_ottawa_residential_polygons <- function(){
 }
 
 
-get_ottawa_das <- function(){
-  url <-"https://www12.statcan.gc.ca/census-recensement/2021/geo/sip-pis/boundary-limites/files-fichiers/lda_000a21a_e.zip"
+get_ottawa_das <- function(year = c(2016, 2021)){
+
+  year <- as.character(year)
+  year <- match.arg(year, year)
+
+  if (year == "2021"){
+    url <-"https://www12.statcan.gc.ca/census-recensement/2021/geo/sip-pis/boundary-limites/files-fichiers/lda_000a21a_e.zip"
+  }
+  if (year == "2016"){
+    # https://www12.statcan.gc.ca/census-recensement/2011/geo/bound-limit/bound-limit-2016-eng.cfm
+    url <- "https://www12.statcan.gc.ca/census-recensement/2011/geo/bound-limit/files-fichiers/2016/lda_000a16a_e.zip"
+
+  }
 
   # download and unzip dissemination area files
 
@@ -38,7 +49,10 @@ get_ottawa_das <- function(){
 
   # load all DAs
   message("Load DAs")
-  das_all <- sf::read_sf("temp/lda_000a21a_e.shp")
+  da_file <- list.files(path = "temp", pattern = "*.shp") %>%
+   paste0("temp/", .)
+
+  das_all <- sf::read_sf(da_file)
 
   # filter for just Ottawa DAs
   message("Filter DAs")
@@ -62,28 +76,62 @@ get_da_ons_intersection <- function(da_ott, ons_trim){
 
   da_intersect <-  da_ott %>%
     #head(1) %>%
-  #  ggplot() + geom_sf(data = ons_shp) + geom_sf(fill = "blue")
-  #dplyr::mutate(geometry = purrr::map(geometry, st_buffer, dist = 0)) #%>%
-  dplyr::mutate(results = purrr::map(geometry, function(x) {
-    purrr::map(ons_trim$geometry, sf::st_intersection, y=x) %>%
-      purrr::map_dbl(sf::st_area) %>%
-      dplyr::tibble(ONS_ID = ons_trim$ONS_ID, Name = ons_trim$Name, intersection_area = .)
-  })) %>%
-  sf::st_set_geometry(NULL)
+    #  ggplot() + geom_sf(data = ons_shp) + geom_sf(fill = "blue")
+    #dplyr::mutate(geometry = purrr::map(geometry, st_buffer, dist = 0)) #%>%
+    dplyr::mutate(results = purrr::map(geometry, function(x) {
+      purrr::map(ons_trim$geometry, sf::st_intersection, y=x) %>%
+        purrr::map_dbl(sf::st_area) %>%
+        dplyr::tibble(ONS_ID = ons_trim$ONS_ID, Name = ons_trim$Name, intersection_area = .)
+    })) %>%
+    sf::st_set_geometry(NULL)
 
 
 
-da_unnest <- da_intersect %>%
-  tidyr::unnest(cols = results) %>%
-#  dplyr::rename(intersection_area = results) %>%
-  group_by(DAUID) %>%
-  dplyr::mutate(total_intersection_area = sum(intersection_area),
-         intersection_pct = intersection_area / total_intersection_area,
-         intersection_pct = round(intersection_pct, digits=3 )) %>%
-  dplyr::filter(intersection_pct > 0 ) %>%
-  dplyr::select(DAUID, ONS_ID, intersection_pct) %>%
-  tidyr::pivot_wider(names_from = ONS_ID, values_from = intersection_pct, values_fill = 0) %>%
-  dplyr::select(DAUID, sort(current_vars()))
+  da_unnest <- da_intersect %>%
+    tidyr::unnest(cols = results) %>%
+    #  dplyr::rename(intersection_area = results) %>%
+    group_by(DAUID) %>%
+    dplyr::mutate(total_intersection_area = sum(intersection_area),
+                  intersection_pct = intersection_area / total_intersection_area
+                  #,intersection_pct = round(intersection_pct, digits=3 )
+                  ) %>%
+    dplyr::filter(intersection_pct > 0 ) %>%
+    dplyr::select(DAUID, ONS_ID, intersection_pct) %>%
+    tidyr::pivot_wider(names_from = ONS_ID, values_from = intersection_pct, values_fill = 0) %>%
+    dplyr::select(DAUID, sort(current_vars()))
 
-da_unnest
+  da_unnest
+}
+
+
+# round percentages so tha tthey add to 100 using the largest remainders algorithm
+# https://stackoverflow.com/questions/13483430/how-to-make-rounded-percentages-add-up-to-100
+# fails for c(28.54170, 17.46122, 53.99708)
+# total rewrite of https://github.com/basilesimon/largeRem
+largeRem <- function (values) {
+  # can't use `==` because it will fail for some floating-point comparisons
+
+  if (!all.equal(sum(values), 100)) {
+    message(values)
+    stop("The sum of the items in your column isn't equal to 100!!!!")
+  }
+
+  diffTo100 <- 100 - sum(as.integer(values))
+
+  values_int <- floor(values)
+  result <- values_int
+
+  # get decimal values, and rank them in decreasing order of bigness
+  decimal_values <- values %% 1
+
+  ranked_indices <- sort(decimal_values, decreasing = TRUE,  index.return = TRUE)$ix
+
+  # we need to add some integer value to get to 100, and we'll add 1 to as many
+  # different values as we need using our ranking
+  indices_to_update <- ranked_indices[1:diffTo100]
+
+  # update those values
+  result[indices_to_update] <- result[indices_to_update] +  sign(diffTo100)
+
+  return(result)
 }

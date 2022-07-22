@@ -56,7 +56,10 @@ sf::st_bbox(onsr::ons_shp)
 
 library(leaflet)
 targets::tar_load(osm_res)
-targets::tar_load()
+targets::tar_load(da_ons_intersect_raw)
+targets::tar_load(da_ons_intersect)
+targets::tar_load(ons_trim)
+
 osm_res %>% sf::st_transform(crs = "WGS84") %>%
 leaflet() %>% addTiles() %>% addPolygons()
 
@@ -76,3 +79,62 @@ test <- da_ott %>%
   dplyr::bind_rows(da_ons_intersect_raw) %>%
   dplyr::mutate(dplyr::across(dplyr::everything(), function(x) dplyr::if_else(is.na(x), 0, x)))
 
+
+
+
+# rounding but preserving sum to 1
+
+# fails for c(28.54170, 17.46122, 53.99708)
+# total rewrite of https://github.com/basilesimon/largeRem
+largeRem <- function (values) {
+  # can't use `==` because it will fail for some floating-point comparisons
+
+  if (!all.equal(sum(values), 100)) {
+    message(values)
+    stop("The sum of the items in your column isn't equal to 100!!!!")
+  }
+
+  diffTo100 <- 100 - sum(as.integer(values))
+
+  values_int <- floor(values)
+  result <- values_int
+
+  # get decimal values, and rank them in decreasing order of bigness
+  decimal_values <- values %% 1
+
+  ranked_indices <- sort(decimal_values, decreasing = TRUE,  index.return = TRUE)$ix
+
+  # we need to add some integer value to get to 100, and we'll add 1 to as many
+  # different values as we need using our ranking
+  indices_to_update <- ranked_indices[1:diffTo100]
+
+  # update those values
+  result[indices_to_update] <- result[indices_to_update] +  sign(diffTo100)
+
+  return(result)
+}
+
+test <- da_ons_intersect %>% pivot_longer(cols = -DAUID) %>% filter(value > 0) %>% group_by(DAUID)
+
+test2 <- test %>%
+  mutate(value_pct = value*100) %>%
+  group_by(DAUID) %>%
+  mutate(pct_largerem = largeRem(value_pct),
+         pct_round = round(value_pct),
+         same = pct_largerem == pct_round
+         )
+
+da_ons_intersect %>%
+  pivot_longer(cols = -DAUID, names_to = "ONS_ID", values_to = "pct_overlap") %>%
+  filter(pct_overlap > 0) %>%
+  group_by(DAUID) %>%
+  mutate(pct_overlap_rnd = largeRem(pct_overlap*100)/100)
+
+
+test %>%
+  filter(DAUID == "35060127") %>%
+  pull(value) %>% `*`(100) %>% sum()
+
+df <- 1
+
+1/6
