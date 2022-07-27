@@ -1,0 +1,10 @@
+﻿sc_df,ons_df,sc_var_id,ons_var_id,var_type
+sc_labour2016,ons_data,31003,CDP304,count
+sc_pop2016,ons_data,1000,pop2016,count
+sc_pop2016,ons_data,2001,CDP54a,count
+sc_pop2016,ons_data,2016,CDP54d,count
+sc_immcitzn2016,ons_data,18010,CDP90,count
+sc_immcitzn2016,ons_data,23001,CDP130,count
+sc_immcitzn2016,ons_data,23005,CDP134,count
+sc_vismin2016,ons_data,25001,minority1,count
+sc_vismin2016,ons_data,25014,minority13,count

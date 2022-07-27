@@ -135,3 +135,210 @@ largeRem <- function (values) {
 
   return(result)
 }
+
+
+
+
+
+####
+#'  Collect ONS data and DA-to-ONS data calculated using proportional assignment and single-link indicators
+#'
+#'  The Ottawa Neighbourhood Study (ONS) has custom geographies (neighbourhoods)
+#'  that do not align with Statistics Canada's census regions. StatsCan has granular
+#'  data and can run custom analyses to get census data for ONS's regions, but this
+#'  is expensive and slow. ONS therefore wants to use public StatsCan data
+#'
+#'  This function creates a table that can be used to compare the Ottawa Neighbourhood
+#'  Study's (ONS) "gold-standard" StatsCan-cut results to results computed using only public
+#'  data. Two methods are performed: a one-to-many method where where DA-level data
+#'  is assigned to a neighbourhood based on the relative extent to which it overlaps
+#'  that neighbourhood's residential zones according to OpenStreetMaps (OSM); and
+#'  a one-to-one method where each DA is assigned entirely to the single neighbourhood
+#'  it most overlaps.
+#'
+#'  NOTE THAT THIS ONLY WORKS FOR COUNT DATA.
+#'
+#' @param sc_df A data frame containing Statistics Canada census data.
+#' @param ons_data A data frame containing ONS's data.
+#' @param da_ons_intersect A data frame containing DAUIDs and ONS_IDs and their proportional overlap.
+#' @param sc_var_id The value of the column `TEXT_ID` in `sc_df` for the value of interest.
+#' @param ons_var_id The value of the column `polygon_attribute` in `ons_data` for the value of interest.
+#' @param var_type Unused; may be used if other types of data beyond count data are used.
+#'
+#' @return A data frame with the ONS gold-standard value, the value by method of
+#'         proportional overlaps, and the single-link indicator value.
+#' @export
+get_values_for_comparison <- function(sc_df, ons_data, da_ons_intersect, sc_var_id, ons_var_id, var_type = c("count") ){
+
+  var_type <- match.arg(var_type, var_type)
+  #
+  # # input census dataframe, here we're using labour
+  # sc_df <- sc_labour2016
+  #
+  # # input ons dataframe, should always be ons_data, it's silly but i'm putting it here for absolute clarity
+  # ons_data <- ons_data
+  #
+  # # statscan census TEXT_ID for  variable of interest, here we're using # unemployed
+  # sc_var_id <- "31003"
+  #
+  # # ons_data polygon_attribute for variable of interest, again # unemployed
+  # ons_var_id <- "CDP304"
+  #
+  # # dummy variable in case of future features: we're only doing simple counts for now
+  # var_type <- "count"
+
+
+  ## PREPARE: isolate the statscan variable of interest
+
+  sc_var <- sc_df %>%
+    dplyr::filter(TEXT_ID == sc_var_id) %>%
+    dplyr::mutate(T_DATA_DONNEE = as.numeric(T_DATA_DONNEE)) %>%
+    dplyr::select(TEXT_ID,
+                  TEXT_NAME_NOM,
+                  DAUID = GEO_ID,
+                  T_DATA_DONNEE)
+
+
+
+  ## FIRST: Compute city-wide differences
+
+  sc_citywide <- sc_var %>%
+    dplyr::summarise(total = sum(T_DATA_DONNEE, na.rm = TRUE)) %>%
+    unlist()
+
+  ons_citywide <- ons_data %>%
+    dplyr::filter(polygon_attribute == ons_var_id,
+                  ONS_ID == 0) %>%
+    dplyr::pull(value)
+
+  # get human-readable descriptions too
+  sc_description <- stringr::str_squish(unique(sc_var$TEXT_NAME_NOM))
+
+  ons_description <- ons_data %>%
+    dplyr::filter(polygon_attribute == ons_var_id) %>%
+    dplyr::mutate(ons_description = paste0(category1, " / ", category2, " / ", category3)) %>%
+    dplyr::distinct(ons_description) %>%
+    unlist()
+
+  citywide <- dplyr::tibble(
+    sc_var_id = sc_var_id,
+    ons_var_id = ons_var_id,
+    sc_description = sc_description,
+    ons_description = ons_description,
+    sc_citywide = sc_citywide,
+    ons_citywide = ons_citywide)
+
+  ## NEXT: compute neighbourhood-level differences
+
+  # using proportional overlaps
+  result_overlap <- da_ons_intersect %>%
+    dplyr::left_join(sc_var, by = "DAUID") %>%
+    dplyr::group_by(ONS_ID) %>%
+    dplyr::summarise(value_overlap = sum(pct_overlap_rnd * T_DATA_DONNEE, na.rm = TRUE)) %>%
+    dplyr::ungroup() %>%
+    # then create ottawa-wide value
+    dplyr::bind_rows(
+      dplyr::summarise(., value_overlap = sum(value_overlap, na.rm = TRUE)) %>%
+        dplyr::mutate(ONS_ID = "0")
+    ) %>%
+    dplyr::arrange(ONS_ID)
+
+  # using single-link indicator
+  # create single-link indicator taking single ONS ID of maximum overlap
+  # in cases of perfect tie, choose the first one listed
+  da_ons_sli <- da_ons_intersect %>%
+    dplyr::group_by(DAUID) %>%
+    dplyr::arrange(dplyr::desc(pct_overlap)) %>%
+    dplyr::slice_head(n = 1) %>%
+    #  dplyr::filter(pct_overlap_rnd == max(pct_overlap_rnd)) %>%
+    dplyr::mutate(pct_overlap_rnd = 1) %>%
+    dplyr::select(DAUID, ONS_ID, pct_overlap_rnd)
+
+  result_sli <- da_ons_sli %>%
+    dplyr::left_join(sc_var, by = "DAUID") %>%
+    dplyr::group_by(ONS_ID) %>%
+    dplyr::summarise(value_sli = sum(pct_overlap_rnd * T_DATA_DONNEE, na.rm = TRUE)) %>%
+    dplyr::ungroup() %>%
+    dplyr::bind_rows(
+      dplyr::summarise(., value_sli = sum(value_sli, na.rm = TRUE)) %>%
+        dplyr::mutate(ONS_ID = "0")
+    ) %>%
+    dplyr::arrange(ONS_ID)
+
+  ## Get ONS "gold standard"
+
+  result_ons <- ons_data %>%
+    dplyr::filter(polygon_attribute == ons_var_id) %>%
+    dplyr::select(ONS_ID, value_ons = value) %>%
+    dplyr::mutate(value_ons = dplyr::if_else(is.na(value_ons), 0, value_ons))
+
+
+  ### PUT RESULTS TOGETHER, replace NAs with 0
+  results <- result_ons %>%
+    dplyr::left_join(result_overlap, by = "ONS_ID") %>%
+    dplyr::left_join(result_sli, by = "ONS_ID") %>%
+    dplyr::mutate(dplyr::across(where(is.numeric), tidyr::replace_na, 0)) %>%
+    dplyr::mutate(  sc_var_id = sc_var_id,
+                    ons_var_id = ons_var_id,
+                    sc_description = sc_description,
+                    ons_description = ons_description,
+                    .before = 1)
+
+  return(results)
+}
+
+
+########### DO COMPARISONS
+# mean/sd of differences? absolutes amd proportions
+create_diff_table <- function(comp_table) {
+
+  # get descriptions
+  sc_description <- unique(comp_table$sc_description)
+  ons_description <- unique(comp_table$ons_description)
+
+  # get count differences and proportional (i.e. percent) diffs
+  comp_table_diffs <- comp_table %>%
+    filter(value_ons > 0) %>%
+    #filter(as.numeric(ONS_ID) > 0) %>%
+    mutate(overlap_diff_count = (value_overlap - value_ons),
+           sli_diff_count = (value_sli- value_ons),
+           overlap_diff_prop = overlap_diff_count/value_ons,
+           sli_diff_prop = sli_diff_count/value_ons)
+
+  # summarize across all neighbourhoods
+  comp_table_summary_hoods <- comp_table_diffs %>%
+    filter(as.numeric(ONS_ID) > 0) %>%
+    summarise(overlap_diff_count_mean = mean(overlap_diff_count),
+              overlap_diff_count_sd = sd(overlap_diff_count),
+              overlap_diff_prop_mean = mean(overlap_diff_prop),
+              overlap_diff_pop_sd = sd(overlap_diff_prop),
+              sli_diff_count_mean = mean(sli_diff_count),
+              sli_diff_count_sd = sd(sli_diff_count),
+              sli_diff_prop_mean = mean(sli_diff_prop),
+              sli_diff_pop_sd = sd(sli_diff_prop)
+    ) %>%
+    dplyr::mutate(scope = "neighbourhoods", .before = 1)
+
+  # also create city-wide comparison
+  comp_table_summary_city <- comp_table_diffs %>%
+    filter(as.numeric(ONS_ID) == 0) %>%
+    summarise(overlap_diff_count_mean = mean(overlap_diff_count),
+              overlap_diff_count_sd = sd(overlap_diff_count),
+              overlap_diff_prop_mean = mean(overlap_diff_prop),
+              overlap_diff_prop_sd = sd(overlap_diff_prop),
+              sli_diff_count_mean = mean(sli_diff_count),
+              sli_diff_count_sd = sd(sli_diff_count),
+              sli_diff_prop_mean = mean(sli_diff_prop),
+              sli_diff_prop_sd = sd(sli_diff_prop)
+    )  %>%
+    dplyr::mutate(scope = "city", .before = 1)
+
+  # put it all together and return it
+  dplyr::bind_rows(comp_table_summary_city, comp_table_summary_hoods) %>%
+    dplyr::bind_cols(dplyr::distinct(comp_table, sc_var_id, ons_var_id), .) %>%
+    dplyr::mutate(sc_description = sc_description,
+                  ons_description = ons_description,
+                  .before = "scope")
+
+}
+

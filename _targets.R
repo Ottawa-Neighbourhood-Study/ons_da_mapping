@@ -5,6 +5,9 @@ tar_option_set(packages = c("tidyverse",
 source("R/functions.R")
 
 list(
+  targets::tar_target(ons_data,
+                      onsr::get_ons_data()),
+
   targets::tar_target(ott_osm_res_poly,
                       get_osm_ottawa_residential_polygons()
   ),
@@ -66,5 +69,28 @@ list(
 
                         # return the time the last values were saved
                         Sys.time()
-                      })
+                      }),
+
+  targets::tar_target(sc_pop2016,
+                      onsr::census_make_dguid(data = da_ott$DAUID, geouid_type = "DAUID") %>%
+                        onsr::census_get_data(topic = 13)),
+
+  targets::tar_target(sc_labour2016,
+                      onsr::census_make_dguid(data = da_ott$DAUID, geouid_type = "DAUID") %>%
+                        onsr::census_get_data(topic = 9)),
+
+  targets::tar_target(sc_vismin2016,
+                      onsr::census_make_dguid(data = da_ott$DAUID, geouid_type = "DAUID") %>%
+                        onsr::census_get_data(topic = 14)),
+
+
+  targets::tar_target(sc_immcitzn2016,
+                      onsr::census_make_dguid(data = da_ott$DAUID, geouid_type = "DAUID") %>%
+                        onsr::census_get_data(topic = 6)),
+
+  targets::tar_target(sc_pop2016total,
+                      dplyr::filter(sc_pop2016, TEXT_ID == "1000"))
+
+
+
 )
