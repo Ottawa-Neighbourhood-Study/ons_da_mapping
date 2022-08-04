@@ -404,8 +404,8 @@ comp_table <- get_values_for_comparison(sc_df = sc_pop2016, ons_data = ons_data,
 
 # number employed
 z <- get_values_for_comparison(sc_df = sc_labour2016, ons_data = ons_data,
-                              da_ons_intersect = da_ons_intersect,
-                              sc_var_id = "31003", ons_var_id = "CDP304", var_type = "count") %>%
+                               da_ons_intersect = da_ons_intersect,
+                               sc_var_id = "31003", ons_var_id = "CDP304", var_type = "count") %>%
   create_diff_table()
 
 z
@@ -483,3 +483,339 @@ for (i in 1:nrow(vars_for_analysis)){
 }
 
 results
+
+
+
+
+### creating big tidy table without summarizing
+
+# take all of the input data and, for variables defined in a csv file,
+# estimate the values using proportional and SLI methods, then find average
+# differences between the gold standard
+analyze_variables_long <- function(sc_labour2016, sc_pop2016, sc_immcitzn2016, sc_vismin2016, ons_data, da_ons_intersect) {
+  vars_for_analysis <- readr::read_csv("inputs/vars_for_analysis.csv", col_types = readr::cols(.default = "c"))
+
+  results <- dplyr::tibble()
+
+  for (i in 1:nrow(vars_for_analysis)){
+    sc_df <- get(vars_for_analysis$sc_df[[i]])
+    #sc_df <- targets::tar_read(vars_for_analysis$sc_df[[i]])
+    ons_df <- get(vars_for_analysis$ons_df[[i]])
+    sc_var_id <- vars_for_analysis$sc_var_id[[i]]
+    ons_var_id <- vars_for_analysis$ons_var_id[[i]]
+    var_type <- vars_for_analysis$var_type[[i]]
+
+    result <- get_values_for_comparison(sc_df = sc_df,
+                                        ons_data = ons_df,
+                                        da_ons_intersect = da_ons_intersect,
+                                        sc_var_id = sc_var_id,
+                                        ons_var_id = ons_var_id,
+                                        var_type = "count") %>%
+      # get differences
+      dplyr::mutate(overlap_diff_count = (value_overlap - value_ons),
+                    sli_diff_count = (value_sli- value_ons),
+                    overlap_diff_prop = overlap_diff_count/value_ons,
+                    sli_diff_prop = sli_diff_count/value_ons)
+    #%>% create_diff_table()
+
+    results <- dplyr::bind_rows(results, result)
+  }
+
+
+  results
+}
+
+#df_long <- analyze_variables_long(sc_labour2016 = sc_labour2016, sc_pop2016 = sc_pop2016, sc_immcitzn2016 = sc_immcitzn2016, sc_vismin2016 = sc_vismin2016, ons_data = ons_data, da_ons_intersect = da_ons_intersect)
+df_long <- comparison_long
+
+create_summary_table <- function(df_long){
+  df_long %>%
+    dplyr::mutate(scope = dplyr::if_else(ONS_ID == "0", "city", "neighbourhood")) %>%
+    dplyr::group_by(sc_var_id, ons_var_id, ons_description, scope) %>%
+    dplyr::mutate(across(where(is.numeric), function(x) dplyr::if_else(is.finite(x), x, NA_real_))) %>%
+    tidyr::nest() %>%
+    ungroup() %>%
+    dplyr::mutate(data_summary = purrr::map(data, function(x) {
+      x %>%
+        summarise(overlap_diff_count_mean = mean(overlap_diff_count, na.rm = TRUE),
+                  overlap_diff_count_sd = sd(overlap_diff_count, na.rm = TRUE),
+                  overlap_diff_prop_mean = mean(overlap_diff_prop, na.rm = TRUE),
+                  overlap_diff_prop_sd = sd(overlap_diff_prop, na.rm = TRUE),
+                  sli_diff_count_mean = mean(sli_diff_count, na.rm = TRUE),
+                  sli_diff_count_sd = sd(sli_diff_count, na.rm = TRUE),
+                  sli_diff_prop_mean = mean(sli_diff_prop, na.rm = TRUE),
+                  sli_diff_prop_sd = sd(sli_diff_prop, na.rm = TRUE)
+        )
+    })) %>%
+    dplyr::select(-data) %>%
+    tidyr::unnest(cols = c(data_summary)) %>%
+    dplyr::arrange(scope)
+
+}
+
+
+
+### SOME DATAVIZ
+library(leaflet)
+targets::tar_load(comparison_long, comparison_summary_table, ons_data)
+
+comparison_long %>%
+  ggplot(aes(x=overlap_diff_prop, y = sli_diff_prop)) +
+  geom_point() +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(title = "Relative errors by Proportional and SLI methods")
+
+
+comparison_hoods <- comparison_long %>%
+  dplyr::filter(ONS_ID != "0",
+                value_ons != 0) %>%
+  dplyr::group_by(ONS_ID)%>%
+  summarise(overlap_diff_count_mean = mean(overlap_diff_count, na.rm = TRUE),
+            overlap_diff_count_sd = sd(overlap_diff_count, na.rm = TRUE),
+            overlap_diff_prop_mean = mean(overlap_diff_prop, na.rm = TRUE),
+            overlap_diff_prop_sd = sd(overlap_diff_prop, na.rm = TRUE),
+            sli_diff_count_mean = mean(sli_diff_count, na.rm = TRUE),
+            sli_diff_count_sd = sd(sli_diff_count, na.rm = TRUE),
+            sli_diff_prop_mean = mean(sli_diff_prop, na.rm = TRUE),
+            sli_diff_prop_sd = sd(sli_diff_prop, na.rm = TRUE)
+  )
+
+
+
+pal <- colorNumeric("viridis", domain = c(-1, 1))#, bins = seq(-1, 1, .1))
+
+
+ons_shp %>%
+  sf::st_transform(crs = "WGS84") %>%
+  mutate(ONS_ID = as.character(ONS_ID)) %>%
+  left_join(comparison_hoods, by = "ONS_ID") %>%
+  leaflet() %>%
+  addTiles() %>%
+  addPolygons(fillColor =  ~ pal(overlap_diff_prop_mean),
+              label = ~ sprintf("%s (%s) Average difference %.1f%%", Name, ONS_ID, 100*overlap_diff_prop_mean),
+              weight = 0.5, fillOpacity = 0.8
+  )
+
+comparison_summary_table %>%
+  dplyr::filter(scope == "neighbourhood")
+
+
+
+############# GREEDY DA-ONS SLI OPTIMIZATION ALGORITHM?
+
+# Starting with the most-error-on-average ONS neighbourhoods,
+#   For each DA that intersects its residential area at all, NOTE!! should it just be intersection of undifferentiated area for this???
+#     Compute mean errors FOR EACH assignment of that DA TO EACH ONS neighbourhood it intersects at all,
+#     Assign that DA to the ONS neighbourhood that results in the lowest mean SLI error.
+
+targets::tar_load(da_ott)
+targets::tar_load(ons_shp)
+targets::tar_load(da_ons_intersect)
+
+# create SLI from input overlapping data
+da_ons_sli <- da_ons_intersect %>%
+  group_by(DAUID) %>%
+  arrange(desc(pct_overlap_rnd)) %>%
+  slice_head(n=1) %>%
+  mutate(pct_overlap_rnd = 1)
+
+da_ons_sli_temp <- da_ons_sli
+
+da_ons_sli_new <- da_ons_sli
+
+
+sf::st_agr(ons_shp) <- "constant"
+
+hoods_to_analyze <- comparison_hoods %>%
+  dplyr::mutate(sli_prop_diff_mean_abs = abs(sli_diff_prop_mean)) %>%
+  dplyr::arrange(desc(sli_prop_diff_mean_abs)) %>%
+  dplyr::pull(ONS_ID) %>%
+  head(10)
+
+
+tictoc::tic()
+for (i in 1:length(hoods_to_analyze)){
+  message(sprintf("%s/%s", i, length(hoods_to_analyze)))
+
+  hood <- hoods_to_analyze[[i]]
+
+  das_in_hood <-da_ons_intersect %>%
+    dplyr::filter(ONS_ID == hood) %>%
+    dplyr::pull(DAUID)
+
+  # da_ott %>%
+  #   dplyr::filter(DAUID %in% das_in_hood) %>%
+  #   ggplot() + geom_sf()
+
+  for (da in das_in_hood){
+    # get DA shape
+    da_shp <- dplyr::filter(da_ott, DAUID == da)
+
+    # to quiet warning as per https://github.com/r-spatial/sf/issues/406
+    sf::st_agr(da_shp) <- "constant"
+
+    # find ONS_IDs of neighbourhoods that intersect the DA
+    da_hoods <- sf::st_intersection(ons_shp, da_shp) %>%
+      dplyr::pull(ONS_ID) %>%
+      as.character()
+
+    da_ons_sli_temp <- da_ons_sli
+
+    hood_results <- dplyr::tibble()
+
+    for (da_hood in da_hoods){
+      message(paste0("    ", da_hood))
+
+      # update the SLI for analysis to use this ONS ID
+      da_ons_sli_temp[da_ons_sli_temp$DAUID == da,]$ONS_ID <- da_hood
+
+      vars_for_analysis <- readr::read_csv("inputs/vars_for_analysis.csv", col_types = readr::cols(.default = "c"))
+
+
+      var_results <- c()
+
+      # this should obviously be in a function
+      # get mean neighbourhood proportional errors for SLI with this assignment
+      for (j in 1:nrow(vars_for_analysis)){
+        sc_df <- get(vars_for_analysis$sc_df[[j]])
+        ons_df <- get(vars_for_analysis$ons_df[[j]])
+        sc_var_id <- vars_for_analysis$sc_var_id[[j]]
+        ons_var_id <- vars_for_analysis$ons_var_id[[j]]
+        var_type <- vars_for_analysis$var_type[[j]]
+
+
+        sc_var <- sc_df %>%
+          dplyr::filter(TEXT_ID == sc_var_id) %>%
+          dplyr::mutate(T_DATA_DONNEE = as.numeric(T_DATA_DONNEE)) %>%
+          dplyr::select(TEXT_ID,
+                        TEXT_NAME_NOM,
+                        DAUID = GEO_ID,
+                        T_DATA_DONNEE)
+
+
+        # get human-readable descriptions too
+        sc_description <- stringr::str_squish(unique(sc_var$TEXT_NAME_NOM))
+
+        ons_description <- ons_data %>%
+          dplyr::filter(polygon_attribute == ons_var_id) %>%
+          dplyr::mutate(ons_description = paste0(category1, " / ", category2, " / ", category3)) %>%
+          dplyr::distinct(ons_description) %>%
+          unlist()
+
+
+        ## NEXT: compute neighbourhood-level differences
+
+        # using single-link indicator
+
+        result_sli <- da_ons_sli_temp %>%
+          dplyr::left_join(sc_var, by = "DAUID") %>%
+          dplyr::group_by(ONS_ID) %>%
+          dplyr::summarise(value_sli = sum(pct_overlap_rnd * T_DATA_DONNEE, na.rm = TRUE)) %>%
+          dplyr::ungroup() %>%
+          dplyr::bind_rows(
+            dplyr::summarise(., value_sli = sum(value_sli, na.rm = TRUE)) %>%
+              dplyr::mutate(ONS_ID = "0")
+          ) %>%
+          dplyr::arrange(ONS_ID)
+
+        ## Get ONS "gold standard"
+
+        result_ons <- ons_data %>%
+          dplyr::filter(polygon_attribute == ons_var_id) %>%
+          dplyr::select(ONS_ID, value_ons = value) %>%
+          dplyr::mutate(value_ons = dplyr::if_else(is.na(value_ons), 0, value_ons))
+
+
+        ### PUT RESULTS TOGETHER, replace NAs with 0
+        result <- result_ons %>%
+          dplyr::left_join(result_sli, by = "ONS_ID") %>%
+          dplyr::mutate(dplyr::across(where(is.numeric), tidyr::replace_na, 0)) %>%
+          dplyr::mutate(  sc_var_id = sc_var_id,
+                          ons_var_id = ons_var_id,
+                          sc_description = sc_description,
+                          ons_description = ons_description,
+                          .before = 1) %>%
+          # calculate differences
+
+          dplyr::mutate(sli_diff_count = (value_sli- value_ons),
+                        sli_diff_prop = sli_diff_count/value_ons) %>%
+          dplyr::mutate(sli_diff_prop = dplyr::if_else(value_ons == value_sli, 0, sli_diff_prop)) %>% # to handle 0/0 = NaN
+          dplyr::mutate(sli_diff_prop = dplyr::if_else(sli_diff_prop > 5, 5, sli_diff_prop)) %>%      # to handle n/0 = Inf
+          dplyr::filter(ONS_ID != "0") %>%
+
+          # summarise
+          summarise(
+            sli_diff_count_mean = mean(sli_diff_count),
+            sli_diff_count_sd = sd(sli_diff_count),
+            sli_diff_prop_mean = mean(sli_diff_prop),
+            sli_diff_prop_sd = sd(sli_diff_prop)
+          )
+
+
+        #
+        # result <- get_values_for_comparison(sc_df = sc_df,
+        #                                     ons_data = ons_df,
+        #                                     da_ons_intersect = da_ons_intersect,
+        #                                     sc_var_id = sc_var_id,
+        #                                     ons_var_id = ons_var_id,
+        #                                     var_type = "count") %>%
+        #   create_diff_table()
+
+
+        var_results <- c(var_results, result$sli_diff_prop_mean)
+
+      } # end for (j in 1:nrow(vars_for_analysis))
+
+      hood_results <- dplyr::bind_rows(hood_results,
+                                       dplyr::tibble(ONS_ID = da_hood,
+                                                     sli_diff_prop_mean = mean(var_results),
+                                                     sli_diff_prop_sd = sd(var_results)))
+
+    } # end for da_hood in da_hoods
+
+    # assign hood to DA with the best results
+    best_hood <- hood_results %>%
+      dplyr::mutate(abs_diff = abs(sli_diff_prop_mean)) %>%
+      dplyr::arrange(abs_diff) %>%
+      dplyr::slice_head(n=1) %>%
+      dplyr::pull(ONS_ID)
+
+    da_ons_sli_new[da_ons_sli_new$DAUID == da, ]$ONS_ID <- best_hood
+
+  } # end for da in hood
+
+} # end for hood in hoods to analyze
+
+tictoc::toc()
+
+test <- da_ons_sli %>%
+  rename(ONS_ID_old = ONS_ID) %>%
+  select(1:2) %>%
+  left_join(da_ons_sli_new, by = "DAUID") %>%
+  select(1:3) %>%
+  rename(ONS_ID_new = ONS_ID) %>%
+  mutate(diff = ONS_ID_old != ONS_ID_new)
+
+
+# see how it worked!
+comp_new_sli <- analyze_variables_long(sc_labour2016 = sc_labour2016, sc_pop2016 = sc_pop2016, sc_immcitzn2016 = sc_immcitzn2016, sc_vismin2016 = sc_vismin2016, ons_data = ons_data, da_ons_intersect = da_ons_sli_new) %>%
+  create_summary_table() %>%
+  select(!contains("overlap")) %>%
+filter(scope == "neighbourhood")
+
+
+
+analyze_variables_long(sc_labour2016 = sc_labour2016, sc_pop2016 = sc_pop2016, sc_immcitzn2016 = sc_immcitzn2016, sc_vismin2016 = sc_vismin2016, ons_data = ons_data, da_ons_intersect = da_ons_sli_new) %>%
+  select(1:5, contains("sli")) %>%
+  mutate(sli_diff_prop = if_else(sli_diff_count == 0, 0, sli_diff_prop)) %>%
+  rename_with(.cols = contains("sli"), .fn = paste0, "_new") %>%
+  left_join(comparison_long) %>%
+  select(1:5, contains("sli")) %>%
+  mutate(sli_diff_prop = if_else(sli_diff_count == 0, 0, sli_diff_prop)) %>%
+  rename_with(.cols = 8:11, .fn = paste0, "_old") %>%
+  mutate(diff_count = value_sli_new - value_sli_old) %>%
+  arrange(diff_count)
+
+
+left_join(comparison_long)

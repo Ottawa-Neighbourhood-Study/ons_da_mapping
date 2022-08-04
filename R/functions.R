@@ -1,8 +1,9 @@
 # Functions for Ottawa Neighbourhood Study Dissemination Area to Neighbourhoods
 
 # Download OpenStreetMaps residential zones for Ottawa, Ontario
-get_osm_ottawa_residential_polygons <- function(){
-  ottawa_osm <- osmdata::opq(bbox = sf::st_bbox(onsr::ons_shp),
+get_osm_ottawa_residential_polygons <- function(ons_shp){
+
+  ottawa_osm <- osmdata::opq(bbox = sf::st_bbox(sf::st_transform(ons_shp, crs = "WGS84")),
                              nodes_only = FALSE,
                              timeout = 10000,
                              memsize = 1000000000) %>%
@@ -311,11 +312,11 @@ create_diff_table <- function(comp_table) {
     summarise(overlap_diff_count_mean = mean(overlap_diff_count),
               overlap_diff_count_sd = sd(overlap_diff_count),
               overlap_diff_prop_mean = mean(overlap_diff_prop),
-              overlap_diff_pop_sd = sd(overlap_diff_prop),
+              overlap_diff_prop_sd = sd(overlap_diff_prop),
               sli_diff_count_mean = mean(sli_diff_count),
               sli_diff_count_sd = sd(sli_diff_count),
               sli_diff_prop_mean = mean(sli_diff_prop),
-              sli_diff_pop_sd = sd(sli_diff_prop)
+              sli_diff_prop_sd = sd(sli_diff_prop)
     ) %>%
     dplyr::mutate(scope = "neighbourhoods", .before = 1)
 
@@ -342,3 +343,101 @@ create_diff_table <- function(comp_table) {
 
 }
 
+
+# take all of the input data and, for variables defined in a csv file,
+# estimate the values using proportional and SLI methods, then find average
+# differences between the gold standard
+run_comparison_analysis <- function(sc_labour2016, sc_pop2016, sc_immcitzn2016, sc_vismin2016, ons_data, da_ons_intersect) {
+  vars_for_analysis <- readr::read_csv("inputs/vars_for_analysis.csv", col_types = readr::cols(.default = "c"))
+
+  results <- dplyr::tibble()
+
+  for (i in 1:nrow(vars_for_analysis)){
+    sc_df <- get(vars_for_analysis$sc_df[[i]])
+    #sc_df <- targets::tar_read(vars_for_analysis$sc_df[[i]])
+    ons_df <- get(vars_for_analysis$ons_df[[i]])
+    sc_var_id <- vars_for_analysis$sc_var_id[[i]]
+    ons_var_id <- vars_for_analysis$ons_var_id[[i]]
+    var_type <- vars_for_analysis$var_type[[i]]
+
+    result <- get_values_for_comparison(sc_df = sc_df,
+                                        ons_data = ons_df,
+                                        da_ons_intersect = da_ons_intersect,
+                                        sc_var_id = sc_var_id,
+                                        ons_var_id = ons_var_id,
+                                        var_type = "count") %>%
+      create_diff_table()
+
+    results <- dplyr::bind_rows(results, result)
+  }
+
+
+  results
+}
+
+
+
+
+# take all of the input data and, for variables defined in a csv file,
+# estimate the values using proportional and SLI methods, then find average
+# differences between the gold standard
+analyze_variables_long <- function(sc_labour2016, sc_pop2016, sc_immcitzn2016, sc_vismin2016, ons_data, da_ons_intersect) {
+  vars_for_analysis <- readr::read_csv("inputs/vars_for_analysis.csv", col_types = readr::cols(.default = "c"))
+
+  results <- dplyr::tibble()
+
+  for (i in 1:nrow(vars_for_analysis)){
+    sc_df <- get(vars_for_analysis$sc_df[[i]])
+    #sc_df <- targets::tar_read(vars_for_analysis$sc_df[[i]])
+    ons_df <- get(vars_for_analysis$ons_df[[i]])
+    sc_var_id <- vars_for_analysis$sc_var_id[[i]]
+    ons_var_id <- vars_for_analysis$ons_var_id[[i]]
+    var_type <- vars_for_analysis$var_type[[i]]
+
+    result <- get_values_for_comparison(sc_df = sc_df,
+                                        ons_data = ons_df,
+                                        da_ons_intersect = da_ons_intersect,
+                                        sc_var_id = sc_var_id,
+                                        ons_var_id = ons_var_id,
+                                        var_type = "count") %>%
+      # get differences
+      dplyr::mutate(overlap_diff_count = (value_overlap - value_ons),
+                    sli_diff_count = (value_sli- value_ons),
+                    overlap_diff_prop = overlap_diff_count/value_ons,
+                    sli_diff_prop = sli_diff_count/value_ons)
+    #%>% create_diff_table()
+
+    results <- dplyr::bind_rows(results, result)
+  }
+
+
+  results
+}
+
+
+# summarize the results of analyze_variables_long into a table with one row per variable per scope
+
+create_summary_table <- function(df_long){
+  df_long %>%
+    dplyr::mutate(scope = dplyr::if_else(ONS_ID == "0", "city", "neighbourhood")) %>%
+    dplyr::group_by(sc_var_id, ons_var_id, ons_description, scope) %>%
+    dplyr::mutate(across(where(is.numeric), function(x) dplyr::if_else(is.finite(x), x, NA_real_))) %>%
+    tidyr::nest() %>%
+    ungroup() %>%
+    dplyr::mutate(data_summary = purrr::map(data, function(x) {
+      x %>%
+        summarise(overlap_diff_count_mean = mean(overlap_diff_count, na.rm = TRUE),
+                  overlap_diff_count_sd = sd(overlap_diff_count, na.rm = TRUE),
+                  overlap_diff_prop_mean = mean(overlap_diff_prop, na.rm = TRUE),
+                  overlap_diff_prop_sd = sd(overlap_diff_prop, na.rm = TRUE),
+                  sli_diff_count_mean = mean(sli_diff_count, na.rm = TRUE),
+                  sli_diff_count_sd = sd(sli_diff_count, na.rm = TRUE),
+                  sli_diff_prop_mean = mean(sli_diff_prop, na.rm = TRUE),
+                  sli_diff_prop_sd = sd(sli_diff_prop, na.rm = TRUE)
+        )
+    })) %>%
+    dplyr::select(-data) %>%
+    tidyr::unnest(cols = c(data_summary)) %>%
+    dplyr::arrange(scope)
+
+}

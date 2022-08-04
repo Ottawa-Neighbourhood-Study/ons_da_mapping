@@ -8,25 +8,29 @@ list(
   targets::tar_target(ons_data,
                       onsr::get_ons_data()),
 
-  targets::tar_target(ott_osm_res_poly,
-                      get_osm_ottawa_residential_polygons()
-  ),
-
-  targets::tar_target(osm_res,
-                      sf::st_make_valid(ott_osm_res_poly)),
-
   targets::tar_target(ons_shp,
                       onsr::ons_shp %>%
                         sf::st_make_valid() %>%
                         sf::st_transform(32189)),
 
+  targets::tar_target(ott_osm_res_poly,
+                      get_osm_ottawa_residential_polygons(ons_shp = ons_shp)
+  ),
+
+  targets::tar_target(osm_res,
+                      sf::st_make_valid(ott_osm_res_poly)),
+
+
   # get the DAs in Ottawa
   targets::tar_target(da_ott,
                       get_ottawa_das(year = 2016)),
 
-  # trim the ONS neighbourhoods to the OSM residential zones
+  # trim the ONS neighbourhoods to the OSM residential zones, removing 3
+  # neighbourhoods with no residents
   targets::tar_target(ons_trim,
-                      sf::st_intersection(ons_shp, osm_res)),
+                      ons_shp %>%
+                        dplyr::filter(!ONS_ID %in% c(5, 17, 71)) %>%
+                        sf::st_intersection(osm_res)),
 
   # get % overlaps of DAs with residential regions of ONS hoods.
   # Each DA % sums to 100%. Each % is the % of *overlapping* DA area in each
@@ -56,12 +60,12 @@ list(
   # save in a few different formats, some more sensible than others
   targets::tar_target(save_outputs,
                       {
-                       # readr::write_csv(da_ons_intersect, sprintf("outputs/da_ons_intersect_wide_%s.csv", Sys.Date()))
+                        # readr::write_csv(da_ons_intersect, sprintf("outputs/da_ons_intersect_wide_%s.csv", Sys.Date()))
 
-                   #     da_ons_long <- da_ons_intersect %>%
-                       #   tidyr::pivot_longer(cols = -DAUID, names_to = "ONS_ID", values_to = "intersect_pct")
+                        #     da_ons_long <- da_ons_intersect %>%
+                        #   tidyr::pivot_longer(cols = -DAUID, names_to = "ONS_ID", values_to = "intersect_pct")
 
-                      #  readr::write_csv(da_ons_long, sprintf("outputs/da_ons_intersect_long_all_%s.csv", Sys.Date()))
+                        #  readr::write_csv(da_ons_long, sprintf("outputs/da_ons_intersect_long_all_%s.csv", Sys.Date()))
 
                         da_ons_intersect %>%
                           dplyr::filter(pct_overlap_rnd != 0) %>%
@@ -79,6 +83,10 @@ list(
                       onsr::census_make_dguid(data = da_ott$DAUID, geouid_type = "DAUID") %>%
                         onsr::census_get_data(topic = 9)),
 
+  targets::tar_target(sc_housing2016,
+                      onsr::census_make_dguid(data = da_ott$DAUID, geouid_type = "DAUID") %>%
+                        onsr::census_get_data(topic = 5)),
+
   targets::tar_target(sc_vismin2016,
                       onsr::census_make_dguid(data = da_ott$DAUID, geouid_type = "DAUID") %>%
                         onsr::census_get_data(topic = 14)),
@@ -89,8 +97,19 @@ list(
                         onsr::census_get_data(topic = 6)),
 
   targets::tar_target(sc_pop2016total,
-                      dplyr::filter(sc_pop2016, TEXT_ID == "1000"))
+                      dplyr::filter(sc_pop2016, TEXT_ID == "1000")),
 
 
+  # take all of the input data and, for variables defined in a csv file,
+  # estimate the values using proportional and SLI methods, then find average
+  # differences between the gold standard
+  targets::tar_target(comparison_long, {
+
+    #run_comparison_analysis(sc_labour2016 = sc_labour2016, sc_pop2016 = sc_pop2016, sc_immcitzn2016 = sc_immcitzn2016, sc_vismin2016 = sc_vismin2016, ons_data = ons_data, da_ons_intersect = da_ons_intersect)
+    analyze_variables_long(sc_labour2016 = sc_labour2016, sc_pop2016 = sc_pop2016, sc_immcitzn2016 = sc_immcitzn2016, sc_vismin2016 = sc_vismin2016, ons_data = ons_data, da_ons_intersect = da_ons_intersect)
+  }),
+
+  targets::tar_target(comparison_summary_table,
+                      create_summary_table(comparison_long))
 
 )
