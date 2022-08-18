@@ -66,7 +66,7 @@ list(
                         dplyr::arrange(dplyr::desc(pct_overlap_rnd)) %>%
                         dplyr::slice_head(n=1) %>%
                         dplyr::ungroup()
-                      ),
+  ),
 
   # save in a few different formats, some more sensible than others
   targets::tar_target(save_outputs,
@@ -148,30 +148,40 @@ list(
   # optimize for mean absolute percentage error, 3 iterations
   targets::tar_target(da_ons_sli_opt_mape,
 
-                      greedy_sli_search(da_ons_sli = da_ons_sli, da_ons_intersect = da_ons_intersect, da_ott = da_ott, ons_shp = ons_shp, hoods_to_analyze = sample(ons_shp$ONS_ID), da_values = da_values, goldstandard_values = goldstandard_values) %>%
-                        greedy_sli_search(da_ons_intersect, da_ott, ons_shp, hoods_to_analyze = sample(ons_shp$ONS_ID), da_values, goldstandard_values) %>%
-                        greedy_sli_search(da_ons_intersect, da_ott, ons_shp, hoods_to_analyze = sample(ons_shp$ONS_ID), da_values, goldstandard_values)
-                      ),
+                      greedy_sli_search(da_ons_sli = da_ons_sli, da_ons_intersect = da_ons_intersect, da_ott = da_ott, ons_shp = ons_shp, hoods_to_analyze = sample(ons_shp$ONS_ID), da_values = da_values, goldstandard_values = goldstandard_values, optimize_for = "mape") %>%
+                        greedy_sli_search(da_ons_intersect, da_ott, ons_shp, hoods_to_analyze = sample(ons_shp$ONS_ID), da_values, goldstandard_values, optimize_for = "mape") %>%
+                        greedy_sli_search(da_ons_intersect, da_ott, ons_shp, hoods_to_analyze = sample(ons_shp$ONS_ID), da_values, goldstandard_values, optimize_for = "mape")
+  ),
 
   # optimize for mean absolute error, 3 iterations
   targets::tar_target(da_ons_sli_opt_mae,
 
-                       greedy_sli_search(da_ons_sli, da_ons_intersect, da_ott, ons_shp, hoods_to_analyze = sample(ons_shp$ONS_ID), da_values, goldstandard_values, optimize_for = "count") %>%
-                         greedy_sli_search(da_ons_intersect, da_ott, ons_shp, hoods_to_analyze = sample(ons_shp$ONS_ID), da_values, goldstandard_values, optimize_for = "count") %>%
-                         greedy_sli_search(da_ons_intersect, da_ott, ons_shp, hoods_to_analyze = sample(ons_shp$ONS_ID), da_values, goldstandard_values, optimize_for = "count")
-                      ),
+                      greedy_sli_search(da_ons_sli, da_ons_intersect, da_ott, ons_shp, hoods_to_analyze = sample(ons_shp$ONS_ID), da_values, goldstandard_values, optimize_for = "mae") %>%
+                        greedy_sli_search(da_ons_intersect, da_ott, ons_shp, hoods_to_analyze = sample(ons_shp$ONS_ID), da_values, goldstandard_values, optimize_for = "mae") %>%
+                        greedy_sli_search(da_ons_intersect, da_ott, ons_shp, hoods_to_analyze = sample(ons_shp$ONS_ID), da_values, goldstandard_values, optimize_for = "mae")
+  ),
+
+  # optimize for mean squared error, 3 iterations
+  targets::tar_target(da_ons_sli_opt_mse,
+
+                      greedy_sli_search(da_ons_sli, da_ons_intersect, da_ott, ons_shp, hoods_to_analyze = sample(ons_shp$ONS_ID), da_values, goldstandard_values, optimize_for = "mse", verbose = FALSE) %>%
+                        greedy_sli_search(da_ons_intersect, da_ott, ons_shp, hoods_to_analyze = sample(ons_shp$ONS_ID), da_values, goldstandard_values, optimize_for = "mse") %>%
+                        greedy_sli_search(da_ons_intersect, da_ott, ons_shp, hoods_to_analyze = sample(ons_shp$ONS_ID), da_values, goldstandard_values, optimize_for = "mse")
+  ),
 
   targets::tar_target(sli_performance,
-                      measure_sli_performance2(da_ons_sli, da_values, goldstandard_values) %>%
-                        dplyr::mutate(optimization = "none", .before = 1) %>%
-                        dplyr::bind_rows(
-                          measure_sli_performance2(da_ons_sli_opt_mae, da_values, goldstandard_values) %>%
-                            dplyr::mutate(optimization = "mean absolute error", .before = 1)
-                        ) %>%
-                        dplyr::bind_rows(
-                          measure_sli_performance2(da_ons_sli_opt_mape, da_values, goldstandard_values) %>%
-                            dplyr::mutate(optimization = "mean absolute percentage error", .before = 1)
-                        )
-                      )
+                      create_sli_performance (da_ons_intersect, da_values, goldstandard_values, da_ons_sli, da_ons_sli_opt_mae, da_ons_sli_opt_mape, da_ons_sli_opt_mse)
+  ),
+
+  targets::tar_target(sli_performance_othervars,
+                      compare_da_ons_links(sc_labour2016, sc_pop2016, sc_immcitzn2016, sc_vismin2016, ons_data, da_ons_intersect, da_ons_sli, da_ons_sli_opt_mae, da_ons_sli_opt_mape, da_ons_sli_opt_mse)
+                      ),
+
+  tarchetypes::tar_render(sli_performance_report,
+                          "Rmd/sli_performance.Rmd"),
+
+  tarchetypes::tar_render(sli_performance_report2,
+                          "Rmd/sli_performance2.Rmd")
+
 
 )

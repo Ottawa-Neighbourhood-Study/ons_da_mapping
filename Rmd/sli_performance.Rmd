@@ -1,0 +1,88 @@
+---
+title: "SLI Performance Report"
+author: "Christopher Belanger"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    code_folding: hide
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(tarchetypes)
+library(DT)
+library(leaflet)
+library(htmltools)
+knitr::opts_chunk$set(echo = TRUE)
+
+source("R/functions.R")
+source("R/greedy_sli_search.R")
+
+targets::tar_load(sli_performance)
+targets::tar_load(dwellings_ons)
+
+sli_performance <- sli_performance %>%
+  mutate(mae = round(mae, digits = 1),
+         mape = round(mape, digits = 4),
+         mse = round(mse)) 
+
+```
+
+
+# Overall Performance
+
+```{r}
+sli_performance%>%
+  select(-raw_comparison) %>%
+  DT::datatable()
+```
+
+
+```{r}
+# to attach leaflet dependencies we do an invisible map
+# otherwise procedural leaflets wont render
+# https://stackoverflow.com/questions/63534247/recommended-way-to-initialize-js-renderer-in-asis-r-markdown-chunk
+leaflet::leaflet(width = 0, height = 0)
+```
+
+```{r results="asis"}
+
+for (i in 1:nrow(sli_performance)){
+  
+  cat (sprintf("\n\n# %s\n\n", sli_performance$method[[i]]))
+
+  cat("\n\n## Absolute Performance\n\n")
+
+  print(plot_sli_performance(sli_performance$raw_comparison[[i]], title = sprintf("%s: Absolute performance", sli_performance$method[[i]]), plot_type = "absolute"))
+  
+  cat("\n\n")
+  
+  map <- leaflet_sli_performance(sli_performance$raw_comparison[[i]], ons_shp, "diff_count") 
+  
+  cat(as.character(htmltools::tagList(map)))
+  #widgetframe::frameWidget(map, width = "100%")
+  
+  cat("\n\n")
+  
+  cat("\n\n## Relative Performance\n\n")
+
+
+  print(plot_sli_performance(sli_performance$raw_comparison[[i]], title = sprintf("%s: Relative performance", sli_performance$method[[i]]), plot_type = "proportional"))
+  
+  cat("\n\n")
+
+map <- leaflet_sli_performance(sli_performance$raw_comparison[[i]], ons_shp, "diff_prop")
+
+cat(as.character(htmltools::tagList(map)))
+  
+  }
+  
+```
+
+```{r}
+3
+
+```
+

@@ -289,6 +289,115 @@ get_values_for_comparison <- function(sc_df, ons_data, da_ons_intersect, sc_var_
 }
 
 
+get_values_for_comparison2 <- function(sc_df, ons_data, da_ons_link, sc_var_id, ons_var_id, var_type = c("count") ){
+
+  var_type <- match.arg(var_type, var_type)
+
+  # if we do not have a weighted file, i.e. if we have a single-link file,
+  # add a column of all 1s so we can use the same method for weighted and SLI
+  # OR if we have only 1372 rows, same thing.
+  if (!"pct_overlap" %in% names(da_ons_link)) da_ons_link$pct_overlap <- 1
+  if (nrow(da_ons_link) == 1372)  da_ons_link$pct_overlap <- 1
+
+  #
+  # # input census dataframe, here we're using labour
+  # sc_df <- sc_labour2016
+  #
+  # # input ons dataframe, should always be ons_data, it's silly but i'm putting it here for absolute clarity
+  # ons_data <- ons_data
+  #
+  # # statscan census TEXT_ID for  variable of interest, here we're using # unemployed
+  # sc_var_id <- "31003"
+  #
+  # # ons_data polygon_attribute for variable of interest, again # unemployed
+  # ons_var_id <- "CDP304"
+  #
+  # # dummy variable in case of future features: we're only doing simple counts for now
+  # var_type <- "count"
+
+
+  ## PREPARE: isolate the statscan variable of interest
+
+  sc_var <- sc_df %>%
+    dplyr::filter(TEXT_ID == sc_var_id) %>%
+    dplyr::mutate(T_DATA_DONNEE = as.numeric(T_DATA_DONNEE)) %>%
+    dplyr::select(TEXT_ID,
+                  TEXT_NAME_NOM,
+                  DAUID = GEO_ID,
+                  T_DATA_DONNEE)
+
+
+  # get human-readable descriptions too
+  sc_description <- stringr::str_squish(unique(sc_var$TEXT_NAME_NOM))
+
+  ons_description <- ons_data %>%
+    dplyr::filter(polygon_attribute == ons_var_id) %>%
+    dplyr::mutate(ons_description = paste0(category1, " / ", category2, " / ", category3)) %>%
+    dplyr::distinct(ons_description) %>%
+    unlist()
+
+
+  ## NEXT: compute neighbourhood-level differences
+
+  # using proportional overlaps
+  result_overlap <- da_ons_link %>%
+    dplyr::left_join(sc_var, by = "DAUID") %>%
+    dplyr::group_by(ONS_ID) %>%
+    dplyr::summarise(value_overlap = sum(pct_overlap_rnd * T_DATA_DONNEE, na.rm = TRUE)) %>%
+    dplyr::ungroup() %>%
+    # then create ottawa-wide value
+    dplyr::bind_rows(
+      dplyr::summarise(., value_overlap = sum(value_overlap, na.rm = TRUE)) %>%
+        dplyr::mutate(ONS_ID = "0")
+    ) %>%
+    dplyr::arrange(ONS_ID)
+
+  # using single-link indicator
+  # create single-link indicator taking single ONS ID of maximum overlap
+  # in cases of perfect tie, choose the first one listed
+  da_ons_sli <- da_ons_intersect %>%
+    dplyr::group_by(DAUID) %>%
+    dplyr::arrange(dplyr::desc(pct_overlap)) %>%
+    dplyr::slice_head(n = 1) %>%
+    #  dplyr::filter(pct_overlap_rnd == max(pct_overlap_rnd)) %>%
+    dplyr::mutate(pct_overlap_rnd = 1) %>%
+    dplyr::select(DAUID, ONS_ID, pct_overlap_rnd)
+
+  result_sli <- da_ons_sli %>%
+    dplyr::left_join(sc_var, by = "DAUID") %>%
+    dplyr::group_by(ONS_ID) %>%
+    dplyr::summarise(value_sli = sum(pct_overlap_rnd * T_DATA_DONNEE, na.rm = TRUE)) %>%
+    dplyr::ungroup() %>%
+    dplyr::bind_rows(
+      dplyr::summarise(., value_sli = sum(value_sli, na.rm = TRUE)) %>%
+        dplyr::mutate(ONS_ID = "0")
+    ) %>%
+    dplyr::arrange(ONS_ID)
+
+  ## Get ONS "gold standard"
+
+  result_ons <- ons_data %>%
+    dplyr::filter(polygon_attribute == ons_var_id) %>%
+    dplyr::select(ONS_ID, value_ons = value) %>%
+    dplyr::mutate(value_ons = dplyr::if_else(is.na(value_ons), 0, value_ons))
+
+
+  ### PUT RESULTS TOGETHER, replace NAs with 0
+  results <- result_ons %>%
+    dplyr::left_join(result_overlap, by = "ONS_ID") %>%
+    dplyr::left_join(result_sli, by = "ONS_ID") %>%
+    dplyr::mutate(dplyr::across(where(is.numeric), tidyr::replace_na, 0)) %>%
+    dplyr::mutate(  sc_var_id = sc_var_id,
+                    ons_var_id = ons_var_id,
+                    sc_description = sc_description,
+                    ons_description = ons_description,
+                    .before = 1)
+
+  return(results)
+}
+
+
+
 ########### DO COMPARISONS
 # mean/sd of differences? absolutes amd proportions
 create_diff_table <- function(comp_table) {
@@ -439,5 +548,26 @@ create_summary_table <- function(df_long){
     dplyr::select(-data) %>%
     tidyr::unnest(cols = c(data_summary)) %>%
     dplyr::arrange(scope)
+
+}
+
+
+
+plot_da_assignments <- function(da_ons_sli, da_ott, ons_shp) {
+  hood_names <- ons_shp %>%
+    sf::st_set_geometry(NULL) %>%
+    dplyr::select(ONS_ID, Name)
+
+  pal <- leaflet::colorFactor(domain = hood_names$Name, palette = "Set1")
+
+  da_ott %>%
+    sf::st_transform(crs = "WGS84") %>%
+    dplyr::left_join(da_ons_sli, by = "DAUID") %>%
+    dplyr::left_join(hood_names, by = "ONS_ID") %>%
+    leaflet::leaflet() %>%
+    leaflet::addTiles() %>%
+    leaflet::addPolygons(fillColor = ~ pal(Name),
+                         label = ~ sprintf("%s (%s)<br>DAUID: %s", Name, ONS_ID, DAUID) %>% purrr::map(htmltools::HTML))
+
 
 }
