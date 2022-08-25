@@ -188,7 +188,7 @@ greedy_sli_search <- function(da_ons_sli, da_ons_intersect, da_ott, ons_shp, hoo
   } # end for hood in hoods to analyze
 
   # save optimization results to file
-  readr::write_csv(optimization_progress, sprintf("outputs/optimization_trials/%s-%s.csv", optimize_for, Sys.time()))
+  #readr::write_csv(optimization_progress, sprintf("outputs/optimization_trials/%s-%s.csv", optimize_for, Sys.time()))
 
   result <- da_ons_sli_new %>%
     dplyr::select(DAUID, ONS_ID)
@@ -551,6 +551,33 @@ create_sli_performance <- function(da_ons_intersect, da_values, goldstandard_val
 
 
 
+create_sli_performance2 <- function(da_ons_intersect, da_values, goldstandard_values, da_ons_sli, da_ons_sli_opt_mae, da_ons_sli_opt_mape, da_ons_sli_opt_mse) {
+
+  measure_weighted_performance(da_ons_intersect, da_values, goldstandard_values) %>%
+    dplyr::mutate(method = "Weighted Link", .before = 1) %>%
+    dplyr::bind_rows(
+      measure_sli_performance2(da_ons_sli, da_values, goldstandard_values) %>%
+        dplyr::mutate(method = "SLI unoptimized", .before = 1)
+    ) %>%
+    dplyr::bind_rows(
+      measure_sli_performance2(da_ons_sli_opt_mae, da_values, goldstandard_values) %>%
+        dplyr::mutate(method = "SLI mean absolute error", .before = 1)
+    ) %>%
+    dplyr::bind_rows(
+      measure_sli_performance2(da_ons_sli_opt_mape, da_values, goldstandard_values) %>%
+        dplyr::mutate(method = "SLI mean absolute percentage error", .before = 1)
+    ) %>%
+    dplyr::bind_rows(
+      measure_sli_performance2(da_ons_sli_opt_mse, da_values, goldstandard_values) %>%
+        dplyr::mutate(method = "SLI mean squared error", .before = 1)
+    ) %>%
+    dplyr::bind_cols(dplyr::tibble(
+      sli = list(da_ons_intersect, da_ons_sli, da_ons_sli_opt_mae, da_ons_sli_opt_mape, da_ons_sli_opt_mse )
+    ))
+
+}
+
+
 #' Generate one-to-many weighted links between sets of spatial regions
 #'
 #' @param from_shp An `sf` object with the geometries we are linking from.
@@ -603,8 +630,8 @@ generate_weighted_links <- function(from_shp, from_idcol, to_shp, to_idcol){
     dplyr::select(-.area) %>%
 
     # Set names back to originals
-    dplyr::rename(!!sym(from_idcol) := .from_idcol,
-                  !!sym(to_idcol) := .to_idcol)
+    dplyr::rename(!!rlang::sym(from_idcol) := .from_idcol,
+                  !!rlang::sym(to_idcol) := .to_idcol)
 
   result
 }
@@ -632,7 +659,7 @@ create_sli <- function(weighted_links, from_idcol, weights_col = "weight"){
 
   weighted_links %>%
     dplyr::rename(.weight := {{weights_col}}) %>%
-    dplyr::group_by(!!sym(from_idcol)) %>%
+    dplyr::group_by(!!rlang::sym(from_idcol)) %>%
     dplyr::filter(.weight == max(.weight)) %>%
     dplyr::select(-.weight) %>%
     dplyr::ungroup()
@@ -644,7 +671,7 @@ create_sli <- function(weighted_links, from_idcol, weights_col = "weight"){
 # hoods_to_analyze: character vector of ONS_IDs
 # da_values and goldstandard_values must be tibbles wiht columns "value",
 # and  DAUID or ONS_ID respectively
-greedy_sli_search2 <- function(input_sli, from_shp, from_idcol, from_valuecol, to_shp, to_idcol, to_valuecol, optimize_for = c("mape", "mae", "mse"), tolerance = 0.05, verbose = FALSE){
+greedy_sli_search2 <- function(input_sli, from_shp, from_idcol, from_valuecol, to_shp, to_idcol, to_valuecol, optimize_for = c("mape", "mae", "mse"), tolerance = 0.05, shuffle_inputs = TRUE, verbose = FALSE){
 
   optimize_for <- match.arg(optimize_for, optimize_for)
 
@@ -672,6 +699,10 @@ greedy_sli_search2 <- function(input_sli, from_shp, from_idcol, from_valuecol, t
     dplyr::select(.to_idcol, .to_valuecol) %>%
     dplyr::mutate(.to_idcol = as.character(.to_idcol)) #%>%    dplyr::filter(.to_idcol %in% sli_new$.to_idcol)
 
+  # By default we randomize the order in case that makes some difference
+  if (shuffle_inputs){
+    to_shp <- to_shp[sample(1:nrow(to_shp)), ]
+  }
 
   from_ids <- from_shp$.from_idcol
   to_ids <- to_shp$.to_idcol
@@ -721,13 +752,16 @@ greedy_sli_search2 <- function(input_sli, from_shp, from_idcol, from_valuecol, t
       # find ONS_IDs of neighbourhoods that intersect the DA
       from_possible_tos <- from_to_intersections[from][[1]]
 
+      # set up our results tibble
+      to_results <- dplyr::tibble()
+
       # if it can only go to one possible region, skip it
       if (length(from_possible_tos) == 1) next
 
       if(verbose) message(paste0("  Checking all assignments for originating region ", from))
       # message(paste0("    ", from_possible_tos))
       #from_results <- dplyr::tibble()
-      to_results <- dplyr::tibble()
+
 
       # for all possible destination regions this origin could possibly be assigned to...
       for (from_to in from_possible_tos){
@@ -775,16 +809,24 @@ greedy_sli_search2 <- function(input_sli, from_shp, from_idcol, from_valuecol, t
     } # end for from in froms_in_to
 
     # keep track of progress
+    # if we found results
+    if (nrow(to_results) > 0){
     optimization_progress <- dplyr::bind_rows(optimization_progress,
                                               dplyr::tibble(trial_iteration = i, metric = optimize_for, value =  min(abs(to_results[paste0("sli_diff_", optimize_for)]))))
+    }
+    # if we found no results but have past results, no change.
+    if (nrow(to_results) == 0 & nrow(optimization_progress) > 0) {
+      optimization_progress <- dplyr::bind_rows(optimization_progress,
+                                                dplyr::tibble(trial_iteration = i, metric = optimize_for, value = optimization_progress$value[[nrow(optimization_progress)]] ))
+    }
 
   } # end for to_id in to_ids (i.e. all destinations we are analyzing)
 
   # Create a nice clean output set with proper column names
   result <- sli_new %>%
     dplyr::select(.from_idcol, .to_idcol) %>%
-    dplyr::rename(!!sym(from_idcol) := .from_idcol,
-                  !!sym(to_idcol) := .to_idcol)
+    dplyr::rename(!!rlang::sym(from_idcol) := .from_idcol,
+                  !!rlang::sym(to_idcol) := .to_idcol)
 
   # add optimization progress to result metadata
   # each trial will be added, note that iterations are across trials
@@ -820,10 +862,10 @@ precompute_intersections2 <- function(from_shp, from_idcol, to_shp, to_idcol, to
   # to calculate areas of intersection... slow but necessary
   temp_weighted_links <- generate_weighted_links(from_shp, from_idcol, to_shp, to_idcol) %>%
     dplyr::filter(weight >= tolerance) %>%
-    dplyr::mutate(!!sym(to_idcol) := as.character(!!sym(to_idcol)))  %>%
+    dplyr::mutate(!!rlang::sym(to_idcol) := as.character(!!rlang::sym(to_idcol)))  %>%
     dplyr::select(-weight) %>%
-    dplyr::group_by(!!sym(from_idcol)) %>%
-    tidyr::nest(cols = (!!sym(to_idcol))) %>%
+    dplyr::group_by(!!rlang::sym(from_idcol)) %>%
+    tidyr::nest(cols = (!!rlang::sym(to_idcol))) %>%
     dplyr::mutate(cols = purrr::map(cols, unlist))
 
   from_to_intersections <- temp_weighted_links[,"cols", drop=TRUE]

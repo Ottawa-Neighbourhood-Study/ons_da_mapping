@@ -181,7 +181,71 @@ list(
                           "Rmd/sli_performance.Rmd"),
 
   tarchetypes::tar_render(sli_performance_report2,
-                          "Rmd/sli_performance2.Rmd")
+                          "Rmd/sli_performance2.Rmd"),
+
+  ### Run SLI analysis using revised function
+  # optimize for mean absolute percentage error, 3 iterations
+  targets::tar_target(da_shp,
+                      dplyr::left_join(da_ott, da_values)),
+
+  targets::tar_target(ons_goldstandard_shp,
+                      goldstandard_values %>%
+                        dplyr::select(ONS_ID, value) %>%
+                        dplyr::mutate(ONS_ID = as.character(ONS_ID)) %>%
+                        {dplyr::left_join(dplyr::mutate(ons_shp, ONS_ID = as.character(ONS_ID)), ., by = "ONS_ID")} %>%
+                        dplyr::select(ONS_ID, value) %>%
+                        dplyr::mutate(value = as.numeric(value))
+  ),
+
+  targets::tar_target(da_ons_sli_opt_mape2,
+
+                      greedy_sli_search2(input_sli = da_ons_sli,
+                                         from_shp = da_shp, from_idcol = "DAUID", from_valuecol ="value",
+                                         to_shp = ons_goldstandard_shp, to_idcol = "ONS_ID", to_valuecol = "value",
+                                         optimize_for = "mape", tolerance = 0.05, verbose = FALSE) %>%
+                        greedy_sli_search2(from_shp = da_shp, from_idcol = "DAUID", from_valuecol ="value",
+                                           to_shp = ons_goldstandard_shp, to_idcol = "ONS_ID", to_valuecol = "value",
+                                           optimize_for = "mape", tolerance = 0.05, verbose = FALSE) %>%
+                        greedy_sli_search2(from_shp = da_shp, from_idcol = "DAUID", from_valuecol ="value",
+                                           to_shp = ons_goldstandard_shp, to_idcol = "ONS_ID", to_valuecol = "value",
+                                           optimize_for = "mape", tolerance = 0.05, verbose = FALSE)
+  ),
+
+  # optimize for mean absolute error, 3 iterations
+  targets::tar_target(da_ons_sli_opt_mae2,
+
+                      greedy_sli_search2(input_sli = da_ons_sli,
+                                         from_shp = da_shp, from_idcol = "DAUID", from_valuecol ="value",
+                                         to_shp = ons_goldstandard_shp, to_idcol = "ONS_ID", to_valuecol = "value",
+                                         optimize_for = "mae", tolerance = 0.05, verbose = FALSE) %>%
+                        greedy_sli_search2(from_shp = da_shp, from_idcol = "DAUID", from_valuecol ="value",
+                                           to_shp = ons_goldstandard_shp, to_idcol = "ONS_ID", to_valuecol = "value",
+                                           optimize_for = "mae", tolerance = 0.05, verbose = FALSE) %>%
+                        greedy_sli_search2(from_shp = da_shp, from_idcol = "DAUID", from_valuecol ="value",
+                                           to_shp = ons_goldstandard_shp, to_idcol = "ONS_ID", to_valuecol = "value",
+                                           optimize_for = "mae", tolerance = 0.05, verbose = FALSE)
+  ),
+
+  # optimize for mean squared error, 3 iterations
+  targets::tar_target(da_ons_sli_opt_mse2,
+                      greedy_sli_search2(input_sli = da_ons_sli,
+                                         from_shp = da_shp, from_idcol = "DAUID", from_valuecol ="value",
+                                         to_shp = ons_goldstandard_shp, to_idcol = "ONS_ID", to_valuecol = "value",
+                                         optimize_for = "mse", tolerance = 0.05, verbose = FALSE) %>%
+                        greedy_sli_search2(from_shp = da_shp, from_idcol = "DAUID", from_valuecol ="value",
+                                           to_shp = ons_goldstandard_shp, to_idcol = "ONS_ID", to_valuecol = "value",
+                                           optimize_for = "mse", tolerance = 0.05, verbose = FALSE) %>%
+                        greedy_sli_search2(from_shp = da_shp, from_idcol = "DAUID", from_valuecol ="value",
+                                           to_shp = ons_goldstandard_shp, to_idcol = "ONS_ID", to_valuecol = "value",
+                                           optimize_for = "mse", tolerance = 0.05, verbose = FALSE)
+  ),
+
+  targets::tar_target(sli_performance2,
+                      create_sli_performance2 (da_ons_intersect, da_values, goldstandard_values, da_ons_sli, da_ons_sli_opt_mae2, da_ons_sli_opt_mape2, da_ons_sli_opt_mse2)
+  ),
+  # report with new function
+  tarchetypes::tar_render(sli_performance_report3,
+                          "Rmd/sli_performance3.Rmd")
 
 
 )

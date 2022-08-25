@@ -4,31 +4,41 @@ compare_da_ons_links|function|168e8849ce1bc2f3|||||||||||||||
 comparison_long|stem|f52b353be7543bed|59aa6314a53f9dc3|43a147c4058a2133|1449190665||t19201.6235170845s|5808d95f989225b1|27729|rds|local|vector|||1.962||
 comparison_summary_table|stem|c7ddaf466b7011e1|ac6d76bed0209ec9|009301354d00d0d2|-1844878799||t19201.6303917141s|cc399b07df27b8c3|1311|rds|local|vector|||0.118||
 create_diff_table|function|7ebf39b9630f82fc|||||||||||||||
+create_sli|function|2578c5a8d223cd73|||||||||||||||
 create_sli_performance|function|04982600336ced98|||||||||||||||
+create_sli_performance2|function|e9e989e411d6ba23|||||||||||||||
 create_summary_table|function|c109fc2f881bfd80|||||||||||||||
 da_hoods_precompute|function|aab3cfee21419f2b|||||||||||||||
 da_ons_intersect|stem|13bccb1a6b7acb59|493a4ea512174d9d|c8fe6d54906fe2c7|526056914||t19201.6234780799s|54d3600a74322131|21041|rds|local|vector|||3.973||
 da_ons_intersect_raw|stem|cb3c0d0e15b20e87|c8af55ab85f62565|4d4a1f915d953835|-1494045945||t19201.6234319865s|8569302f35c01e65|22201|rds|local|vector|||105.539|current_vars was deprecated in dplyr 0.8.4.Please use tidyselectpeek_vars instead.90mThis warning is displayed once every 8 hours.39m90mCall lifecyclelast_lifecycle_warnings to see where this warning was generated.39m|
 da_ons_sli|stem|dee6e476f751e6ef|2ae6f866f4a27cb5|80af3f1cfb653630|-1177061827||t19208.5991615324s|aff2136fec4b3efd|7865|rds|local|vector|||0.162||
-da_ons_sli_opt_mae|stem|f0125fad219205c6|edb8dbd121190789|43e71f844b94f1e2|-1063309008||t19213.6172281406s|262ebf0d3dbe52a2|4657|rds|local|vector|||294.37|the condition has length  1 and only the first element will be used. the condition has length  1 and only the first element will be used. the condition has length  1 and only the first element will be used|
-da_ons_sli_opt_mape|stem|72bf6f2daedeab90|a5e5bec8a0570bf5|43e71f844b94f1e2|887396345||t19213.6209598818s|a837b38b77b9b28b|4651|rds|local|vector|||322.413|the condition has length  1 and only the first element will be used. the condition has length  1 and only the first element will be used. the condition has length  1 and only the first element will be used|
-da_ons_sli_opt_mse|stem|a66731cef91a7658|8261b786c4621943|43e71f844b94f1e2|-534000732||t19213.6138209943s|b5e83eec12996447|4645|rds|local|vector|||291.211|the condition has length  1 and only the first element will be used. the condition has length  1 and only the first element will be used. the condition has length  1 and only the first element will be used|
+da_ons_sli_opt_mae|stem|60a472003d0adfff|edb8dbd121190789|f88b1b599835135f|-1063309008||t19229.6901872741s|8c91ba250aedd6e8|5170|rds|local|vector|||314.522|the condition has length  1 and only the first element will be used. the condition has length  1 and only the first element will be used. the condition has length  1 and only the first element will be used|
+da_ons_sli_opt_mae2|stem|0bae4c3fbc399a40|3d968057afb64783|9df3056974b5a7bf|-796475793||t19229.6253357795s|518641cace56398a|5489|rds|local|vector|||54.779||
+da_ons_sli_opt_mape|stem|a0e12b40a04c5ef1|a5e5bec8a0570bf5|f88b1b599835135f|887396345||t19229.6865466925s|fba7dd8bc5441fb5|5163|rds|local|vector|||316.9|the condition has length  1 and only the first element will be used. the condition has length  1 and only the first element will be used. the condition has length  1 and only the first element will be used|
+da_ons_sli_opt_mape2|stem|fd4bee11a91b1b6e|b311e90ba2751f04|9df3056974b5a7bf|1938234868||t19229.62661247s|a24a8b67aae51d9a|5455|rds|local|vector|||54.777||
+da_ons_sli_opt_mse|stem|a9eaa3152346ec84|8261b786c4621943|f88b1b599835135f|-534000732||t19229.6937183657s|eae3a5461cae2ba8|5127|rds|local|vector|||305.088|the condition has length  1 and only the first element will be used. the condition has length  1 and only the first element will be used. the condition has length  1 and only the first element will be used|
+da_ons_sli_opt_mse2|stem|4d0cff9878539092|b651801460c47e4b|9df3056974b5a7bf|656214950||t19229.625978407s|da3d17db70e90b3f|5571|rds|local|vector|||55.527||
 da_ott|stem|415f4ff687860e0b|fa5d7cfddc303024|0e19064860201114|1695488609||t19194.7864949166s|ee2a3c4059347813|920766|rds|local|vector|||15.413|running command timedatectl had status 1|
+da_shp|stem|149943462e82e6ab|22e7e2db34bdd618|6fb7c6a137ed5deb|-1096037645||t19229.5891410017s|d32a5f0f257a3c38|924236|rds|local|vector|||0.049||
 da_values|stem|159d4b8e2fc0a8eb|5ce7a3cb6452e9b1|01f4670f6f53d55d|-511574522||t19208.5976159343s|0f07a5eb0e7f32e4|7113|rds|local|vector|||0.045||
+generate_weighted_links|function|618781ee7d237689|||||||||||||||
 get_da_ons_intersection|function|09f89a9d5fe90c70|||||||||||||||
 get_osm_ottawa_residential_polygons|function|14d42a6406977cf8|||||||||||||||
 get_ottawa_das|function|838961256ff5e636|||||||||||||||
 get_sli_diffs|function|800bc6cc94de6011|||||||||||||||
+get_sli_diffs2|function|1217045a216f5e10|||||||||||||||
 get_values_for_comparison|function|630d9e234bdd9e4b|||||||||||||||
 get_values_for_comparison2|function|e3d92f7658302aae|||||||||||||||
 goldstandard_values|stem|90f413a37bf03241|09563eb4b7863820|99355bf7304490ab|-200686284||t19208.5973437121s|79f4652395c46103|1279|rds|local|vector|||1.378|running command timedatectl had status 1|
-greedy_sli_search|function|23946979c35b38b3|||||||||||||||
+greedy_sli_search|function|2e644ce7c48af336|||||||||||||||
+greedy_sli_search2|function|c0fe5a6860b32ab2|||||||||||||||
 largeRem|function|af075d1c2f54ccad|||||||||||||||
 leaflet_sli_performance|function|ca1c8318f4cca1a6|||||||||||||||
 measure_sli_performance|function|1d448b755fd5c619|||||||||||||||
 measure_sli_performance2|function|fdcad798e3ab427e|||||||||||||||
 measure_weighted_performance|function|8491594ac962bcb5|||||||||||||||
 ons_data|stem|8bf002850a8d876a|8ccc547bb2d522bf|c3b5fc02cdc369c1|1515186085||t19200.6282882881s|e769222a135ed745|565596|rds|local|vector|||9.166|running command timedatectl had status 1. NAs introduced by coercion. NAs introduced by coercion. NAs introduced by coercion. NAs introduced by coercion. NAs introduced by coercion. NAs introduced by coercion. NAs introduced by coercion. NAs introduced by coercion. NAs introduced by coercion. NAs introduced by coercion. NAs introduced by coercion. NAs introduced by coercion. NAs introduced by coercion. NAs introduced by coercion. NAs introduced by coercion. NAs introduced by coercion|
+ons_goldstandard_shp|stem|9512b8588c60c34d|cf1fd78787bc0e53|b6c5539cdc48ff8f|-1762763855||t19229.5891389184s|c7ce4ebab9ec0766|669230|rds|local|vector|||0.028||
 ons_shp|stem|b13c7daacbaeea35|501382f349dde2da|7601abaaee35d97a|1686579308||t19183.7980283062s|1baf3dc8af315ff7|670991|rds|local|vector|||1.18|running command timedatectl had status 1|
 ons_trim|stem|44baee9916fcf57f|ceae2267b486051f|2296590f698583bd|1735462927||t19201.6222101661s|d345fc286f067e25|411247|rds|local|vector|||0.645|attribute variables are assumed to be spatially constant throughout all geometries|
 osm_res|stem|5b6b0b5e22afe210|5b29f8d0731dba2a|25ea104eaacf1f9a|2129774869||t19201.6222022957s|4d92fb45d492230d|568036|rds|local|vector|||0.63||
@@ -36,6 +46,8 @@ ott_osm_res_poly|stem|7ffc3bf4981b4d55|7171edc2a085931e|bafb6e5ff8264f06|8229183
 ott_osm_res_polys|stem|855355e3674a4a42|fcdaa33db2004cdc|df58f841885dcbbd|-1056874932||t19183.7786235244s|698790fa201b22d8|893531|rds|local|vector|||12.684|running command timedatectl had status 1|
 plot_da_assignments|function|f489ac5b58eb8b01|||||||||||||||
 plot_sli_performance|function|8ffd8b898e56ca9d|||||||||||||||
+precompute_intersections|function|af3c98577df017fa|||||||||||||||
+precompute_intersections2|function|0500914107807c72|||||||||||||||
 run_comparison_analysis|function|2a64976e3780ed09|||||||||||||||
 save_outputs|stem|d0692cc5dfd6dfd6|84a2f188aea51046|0cd142a1d05d95ad|1635958269||t19201.6235187049s|dfd0d40dc0c5171b|95|rds|local|vector|||0.14||
 sc_housing2016|stem|0c9d3d841bb24a9d|2be0e963e9a9d07a|b9cae654e8612edf|1866949392||t19202.7416274714s|e141629f98e81cc7|236796|rds|local|vector|||94.93||
@@ -44,8 +56,10 @@ sc_labour2016|stem|4d75481e1782b4f2|3ba73d0d20330896|b9cae654e8612edf|-214171047
 sc_pop2016|stem|114a563989c7f651|e0980999702c4f8f|b9cae654e8612edf|-1170071819||t19200.6296440414s|79f8bd8cd8e104aa|264209|rds|local|vector|||116.882||
 sc_pop2016total|stem|2524618b9415e910|1e00138369c9a1c2|6adf422ec28ab646|-1571980685||t19200.6296442729s|ae4555fa4b5ee935|16901|rds|local|vector|||0.006||
 sc_vismin2016|stem|7c035fbd6dd3d6eb|d010a8247a98ca48|b9cae654e8612edf|1338912260||t19200.7841840786s|49ae28f15d91b458|89438|rds|local|vector|||103.391||
-sli_performance|stem|8c8c7e81051581bf|b1aafb2b01c2beb9|2dbd3655cf68d5e2|2143001746||t19213.6307401761s|0693b7f83c8ad7a7|8569|rds|local|vector|||0.264||
-sli_performance_othervars|stem|8838eec914dfc1ab|362f2d78197c9451|3f98aa5d0e8cd496|-680863489||t19213.6210201827s|3fee828d3c00c4a8|94955|rds|local|vector|||3.234||
+sli_performance|stem|8c8c7e81051581bf|b1aafb2b01c2beb9|67e85d0b796a0556|2143001746||t19229.6045206769s|0693b7f83c8ad7a7|8569|rds|local|vector|||0.61||
+sli_performance_othervars|stem|8838eec914dfc1ab|362f2d78197c9451|d57cf3d8bf010863|-680863489||t19229.6045932463s|3fee828d3c00c4a8|94955|rds|local|vector|||3.679||
 sli_performance_report|stem|37120020c5763bed|df1aa0feea3442f9|d9e4a1309dacd913|2019454147|Rmd/sli_performance.html*Rmd/sli_performance.Rmd|t19213.6311746877s|8f6df7b1d227c13b|20790093|file|local|vector|||38.299||
 sli_performance_report2|stem|c549e01ddec1f16e|93fa86f7216ea0ba|5fb1ed51d25b255f|-1182797643|Rmd/sli_performance2.html*Rmd/sli_performance2.Rmd|t19213.6368302164s|5d1fbbc957ae6053|20908384|file|local|vector|||36.377||
+sli_performance_report3|stem|dff06cb0517c6559|635ba026a4d6fab6|561a6a5e789862ac|-1953491754|Rmd/sli_performance3.html*Rmd/sli_performance3.Rmd|t19229.6941167641s|c524ef5ba79edd4f|21055808|file|local|vector|||35.009||
+sli_performance2|stem|c4d10ca9f50782f8|b65cf347b6b08d72|2094b98f90a021bb|1361526961||t19229.6937205648s|079b96578a791a9d|54411|rds|local|vector|||0.149||
 sli_results_orig|stem|176e6c953d212640|7d27d7abab6b98bf|e73e122b17858fae|-115352561||t19208.5991625741s|12a8d0c45c0dd93a|2883|rds|local|vector|||0.065||
