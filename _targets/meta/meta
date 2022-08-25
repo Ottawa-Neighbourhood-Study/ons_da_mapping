@@ -50,6 +50,7 @@ precompute_intersections|function|af3c98577df017fa|||||||||||||||
 precompute_intersections2|function|0500914107807c72|||||||||||||||
 run_comparison_analysis|function|2a64976e3780ed09|||||||||||||||
 save_outputs|stem|d0692cc5dfd6dfd6|84a2f188aea51046|0cd142a1d05d95ad|1635958269||t19201.6235187049s|dfd0d40dc0c5171b|95|rds|local|vector|||0.14||
+save_slis|stem|4d0cff9878539092|c95870dfc364693c|f19c4eed6e59be37|636141956||t19229.7085223323s|da3d17db70e90b3f|5571|rds|local|vector|||0.248||
 sc_housing2016|stem|0c9d3d841bb24a9d|2be0e963e9a9d07a|b9cae654e8612edf|1866949392||t19202.7416274714s|e141629f98e81cc7|236796|rds|local|vector|||94.93||
 sc_immcitzn2016|stem|acee5428b6b061b7|c0cc4a35dadf926d|b9cae654e8612edf|-1966570828||t19200.7829863891s|091169cdd627f667|540376|rds|local|vector|||113.899||
 sc_labour2016|stem|4d75481e1782b4f2|3ba73d0d20330896|b9cae654e8612edf|-2141710479||t19200.6341405664s|cafba9330039f44d|391750|rds|local|vector|||107.215||

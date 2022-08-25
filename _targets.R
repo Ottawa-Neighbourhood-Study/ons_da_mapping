@@ -245,7 +245,16 @@ list(
   ),
   # report with new function
   tarchetypes::tar_render(sli_performance_report3,
-                          "Rmd/sli_performance3.Rmd")
+                          "Rmd/sli_performance3.Rmd"),
+
+  # save SLIs
+  targets::tar_target(save_slis, {
+    readr::write_csv(da_ons_sli_opt_mae2, sprintf("outputs/da_ons_sli_opt_mae2_%s.csv", Sys.Date()))
+    readr::write_csv(da_ons_sli_opt_mape2, sprintf("outputs/da_ons_sli_opt_mape2_%s.csv", Sys.Date()))
+    readr::write_csv(da_ons_sli_opt_mse2, sprintf("outputs/da_ons_sli_opt_mse2_%s.csv", Sys.Date()))
+
+
+  })
 
 
 )
