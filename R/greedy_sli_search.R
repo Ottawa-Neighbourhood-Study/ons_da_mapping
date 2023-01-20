@@ -235,6 +235,7 @@ measure_sli_performance <- function(sli_for_test, da_values, goldstandard_values
 
 measure_weighted_performance <- function(da_ons_intersect, da_values, goldstandard_values){
   sli_created_results <-  da_values %>%
+   # sf::st_set_geometry(NULL) %>%
     left_join(da_ons_intersect, by = "DAUID") %>%
     mutate(value = value * pct_overlap) %>%
     group_by(ONS_ID) %>%
@@ -242,6 +243,7 @@ measure_weighted_performance <- function(da_ons_intersect, da_values, goldstanda
     mutate(across(where(is.numeric), tidyr::replace_na, 0))
 
   compare_values <- goldstandard_values %>%
+  #  sf::st_set_geometry(NULL) %>%
     left_join(sli_created_results, by = "ONS_ID") %>%
     mutate(diff_count = dwellings_sli - dwellings_ons,
            diff_prop = diff_count/dwellings_ons) %>%
@@ -251,6 +253,36 @@ measure_weighted_performance <- function(da_ons_intersect, da_values, goldstanda
     summarise(mae = mean(abs(diff_count)),
               #     mae_sd = sd(abs(diff_count)),
               mape = mean(abs(diff_prop)),
+              #     mape_sd = sd(abs(diff_prop)),
+              mse = mean(diff_count^2)
+    ) %>%
+    mutate(raw_comparison = list(compare_values))
+}
+
+measure_weighted_performance2 <- function(da_ons_intersect, da_values, da_values_column, goldstandard_values, goldstandard_values_column){
+
+  sli_created_results <-  da_values %>%
+    dplyr::rename(da_value := !!sym(da_values_column)) %>%
+    sf::st_set_geometry(NULL) %>%
+    left_join(da_ons_intersect, by = "DAUID") %>%
+    mutate(da_value = da_value * pct_overlap) %>%
+    group_by(ONS_ID) %>%
+    summarise(da_value = sum(value, na.rm = TRUE))  %>%
+    mutate(across(where(is.numeric), tidyr::replace_na, 0))
+
+  compare_values <- goldstandard_values %>%
+    dplyr::rename(ons_value := !!sym(goldstandard_values_column)) %>%
+    sf::st_set_geometry(NULL) %>%
+    left_join(sli_created_results, by = "ONS_ID") %>%
+    mutate(diff_count = da_value - ons_value,
+           diff_prop = diff_count/ons_value) %>%
+    mutate(across(where(is.numeric), tidyr::replace_na, 0))
+
+  #print(compare_values %>% arrange(ONS_ID))
+  compare_values %>%
+    summarise(mae = mean(abs(diff_count)),
+              #     mae_sd = sd(abs(diff_count)),
+              mape = mean(abs(diff_prop), na.rm = TRUE),
               #     mape_sd = sd(abs(diff_prop)),
               mse = mean(diff_count^2)
     ) %>%
@@ -280,6 +312,43 @@ measure_sli_performance2 <- function(sli_for_test, da_values, goldstandard_value
     mutate(raw_comparison = list(compare_values))
 }
 
+
+measure_sli_performance3 <- function(sli_for_test, da_values, da_values_column, goldstandard_values, goldstandard_values_column){
+
+  # rename da input for easier processing
+  da_values <- da_values %>%
+    dplyr::rename(da_value := !!sym(da_values_column)) %>%
+    sf::st_set_geometry(NULL)
+
+  # remove any city-wide results!
+  goldstandard_values <- goldstandard_values %>%
+    dplyr::rename(goldstandard_values := !!sym(goldstandard_values_column)) %>%
+    dplyr::filter(ONS_ID != "0") %>%
+    sf::st_set_geometry(NULL)
+
+  # calculate sli results
+  sli_created_results <-  da_values %>%
+    left_join(sli_for_test, by = "DAUID") %>%
+    dplyr::group_by(ONS_ID) %>%
+    dplyr::summarise(sli_values = sum(da_value, na.rm = TRUE))  %>%
+    dplyr::mutate(across(where(is.numeric), tidyr::replace_na, 0))
+
+  # combine da and goldstandard results, compare
+  compare_values <- goldstandard_values %>%
+    left_join(sli_created_results, by = "ONS_ID") %>%
+    dplyr::mutate(across(where(is.numeric), tidyr::replace_na, 0))%>%
+    dplyr::mutate(diff_count = sli_values - goldstandard_values,
+           diff_prop = diff_count/goldstandard_values)
+
+  compare_values %>%
+    dplyr::summarise(mae = mean(abs(diff_count)),
+              #  mae_sd = mean(abs(diff_count)),
+              mape = mean(abs(diff_prop), na.rm = TRUE),
+              #   mape_sd = sd(abs(diff_prop)),
+              mse = mean(diff_count^2)
+    ) %>%
+    dplyr::mutate(raw_comparison = list(compare_values))
+}
 
 # function to compare SLI results with gold-standard results
 get_sli_diffs <- function(da_ons_sli_temp, da_values, result_ons, do_not_summarize = FALSE) {
@@ -569,6 +638,34 @@ create_sli_performance2 <- function(da_ons_intersect, da_values, goldstandard_va
     ) %>%
     dplyr::bind_rows(
       measure_sli_performance2(da_ons_sli_opt_mse, da_values, goldstandard_values) %>%
+        dplyr::mutate(method = "SLI mean squared error", .before = 1)
+    ) %>%
+    dplyr::bind_cols(dplyr::tibble(
+      sli = list(da_ons_intersect, da_ons_sli, da_ons_sli_opt_mae, da_ons_sli_opt_mape, da_ons_sli_opt_mse )
+    ))
+
+}
+
+
+
+create_sli_performance3 <- function(da_ons_intersect, da_values, da_values_column, goldstandard_values, goldstandard_values_column, da_ons_sli, da_ons_sli_opt_mae, da_ons_sli_opt_mape, da_ons_sli_opt_mse) {
+
+  measure_weighted_performance2(da_ons_intersect, da_values, da_values_column = da_values_column, goldstandard_values, goldstandard_values_column = goldstandard_values_column) %>%
+    dplyr::mutate(method = "Weighted Link", .before = 1) %>%
+    dplyr::bind_rows(
+      measure_sli_performance3(da_ons_sli, da_values, da_values_column = da_values_column, goldstandard_values, goldstandard_values_column = goldstandard_values_column) %>%
+        dplyr::mutate(method = "SLI unoptimized", .before = 1)
+    ) %>%
+    dplyr::bind_rows(
+      measure_sli_performance3(da_ons_sli_opt_mae, da_values, da_values_column = da_values_column, goldstandard_values, goldstandard_values_column = goldstandard_values_column) %>%
+        dplyr::mutate(method = "SLI mean absolute error", .before = 1)
+    ) %>%
+    dplyr::bind_rows(
+      measure_sli_performance3(da_ons_sli_opt_mape, da_values, da_values_column = da_values_column, goldstandard_values, goldstandard_values_column = goldstandard_values_column) %>%
+        dplyr::mutate(method = "SLI mean absolute percentage error", .before = 1)
+    ) %>%
+    dplyr::bind_rows(
+      measure_sli_performance3(da_ons_sli_opt_mse, da_values, da_values_column = da_values_column, goldstandard_values, goldstandard_values_column = goldstandard_values_column) %>%
         dplyr::mutate(method = "SLI mean squared error", .before = 1)
     ) %>%
     dplyr::bind_cols(dplyr::tibble(

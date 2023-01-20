@@ -254,7 +254,87 @@ list(
     readr::write_csv(da_ons_sli_opt_mse2, sprintf("outputs/da_ons_sli_opt_mse2_%s.csv", Sys.Date()))
 
 
-  })
+  }),
 
 
+  ######## EXPERIMENT 3, OPTIMIZING BASED ON POPULATION COUNTS
+
+  ## for greedy optimization of single-link indicator
+
+  # extract the official 2016 ONS populations
+  targets::tar_target(goldstandard_values_pop2016,{
+                      tempdata <- ons_data %>%
+                        dplyr::filter(polygon_attribute == "pop2016") %>%
+                        dplyr::select(ONS_ID, ons_pop2016 = value) %>%
+                        dplyr::mutate(ons_pop2016 = as.numeric(ons_pop2016))
+
+                      ons_shp %>%
+                        dplyr::mutate(ONS_ID = as.character(ONS_ID)) %>%
+                        left_join(tempdata)
+  }
+                      ),
+
+  targets::tar_target(da_values_pop2016,{
+                        tempdata <- sc_pop2016 %>%
+                          dplyr::filter(HIER_ID == "1.1.1") %>%
+                          dplyr::mutate(T_DATA_DONNEE = as.numeric(T_DATA_DONNEE)) %>%
+                          dplyr::select(DAUID = GEO_ID, da_pop2016 = T_DATA_DONNEE)
+
+                        da_shp %>%
+                          left_join(tempdata)
+                        }
+                        ),
+
+  targets::tar_target(sli_results_orig_pop2016,
+                      measure_sli_performance3(sli_for_test = da_ons_sli,
+                                               da_values =  da_values_pop2016, da_values_column = "da_pop2016",
+                                               goldstandard_values = goldstandard_values_pop2016, goldstandard_values_column =  "ons_pop2016")),
+
+
+  targets::tar_target(da_ons_sli_opt_pop2016_mape,
+
+                      greedy_sli_search2(input_sli = da_ons_sli,
+                                         from_shp = da_values_pop2016, from_idcol = "DAUID", from_valuecol ="da_pop2016",
+                                         to_shp = goldstandard_values_pop2016, to_idcol = "ONS_ID", to_valuecol = "ons_pop2016",
+                                         optimize_for = "mape", tolerance = 0.05, verbose = FALSE) %>%
+                        greedy_sli_search2(from_shp = da_values_pop2016, from_idcol = "DAUID", from_valuecol ="da_pop2016",
+                                           to_shp = goldstandard_values_pop2016, to_idcol = "ONS_ID", to_valuecol = "ons_pop2016",
+                                           optimize_for = "mape", tolerance = 0.05, verbose = FALSE) %>%
+                        greedy_sli_search2(from_shp = da_values_pop2016, from_idcol = "DAUID", from_valuecol ="da_pop2016",
+                                           to_shp = goldstandard_values_pop2016, to_idcol = "ONS_ID", to_valuecol = "ons_pop2016",
+                                           optimize_for = "mape", tolerance = 0.05, verbose = FALSE)
+  ),
+
+  targets::tar_target(da_ons_sli_opt_pop2016_mae,
+
+                      greedy_sli_search2(input_sli = da_ons_sli,
+                                         from_shp = da_values_pop2016, from_idcol = "DAUID", from_valuecol ="da_pop2016",
+                                         to_shp = goldstandard_values_pop2016, to_idcol = "ONS_ID", to_valuecol = "ons_pop2016",
+                                         optimize_for = "mae", tolerance = 0.05, verbose = FALSE) %>%
+                        greedy_sli_search2(from_shp = da_values_pop2016, from_idcol = "DAUID", from_valuecol ="da_pop2016",
+                                           to_shp = goldstandard_values_pop2016, to_idcol = "ONS_ID", to_valuecol = "ons_pop2016",
+                                           optimize_for = "mae", tolerance = 0.05, verbose = FALSE) %>%
+                        greedy_sli_search2(from_shp = da_values_pop2016, from_idcol = "DAUID", from_valuecol ="da_pop2016",
+                                           to_shp = goldstandard_values_pop2016, to_idcol = "ONS_ID", to_valuecol = "ons_pop2016",
+                                           optimize_for = "mae", tolerance = 0.05, verbose = FALSE)
+  ),
+  targets::tar_target(da_ons_sli_opt_pop2016_mse,
+
+                      greedy_sli_search2(input_sli = da_ons_sli,
+                                         from_shp = da_values_pop2016, from_idcol = "DAUID", from_valuecol ="da_pop2016",
+                                         to_shp = goldstandard_values_pop2016, to_idcol = "ONS_ID", to_valuecol = "ons_pop2016",
+                                         optimize_for = "mse", tolerance = 0.05, verbose = FALSE) %>%
+                        greedy_sli_search2(from_shp = da_values_pop2016, from_idcol = "DAUID", from_valuecol ="da_pop2016",
+                                           to_shp = goldstandard_values_pop2016, to_idcol = "ONS_ID", to_valuecol = "ons_pop2016",
+                                           optimize_for = "mse", tolerance = 0.05, verbose = FALSE) %>%
+                        greedy_sli_search2(from_shp = da_values_pop2016, from_idcol = "DAUID", from_valuecol ="da_pop2016",
+                                           to_shp = goldstandard_values_pop2016, to_idcol = "ONS_ID", to_valuecol = "ons_pop2016",
+                                           optimize_for = "mse", tolerance = 0.05, verbose = FALSE)
+  ),
+
+
+  targets::tar_target(sli_performance_pop2016,
+                      create_sli_performance3 (da_ons_intersect, da_values_pop2016, da_values_column = "da_pop2016", goldstandard_values_pop2016, "ons_pop2016", da_ons_sli, da_ons_sli_opt_pop2016_mae, da_ons_sli_opt_pop2016_mape, da_ons_sli_opt_pop2016_mse)
+  ),
+NULL
 )
