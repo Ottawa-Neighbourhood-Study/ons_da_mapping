@@ -1,0 +1,109 @@
+ONS_ID,Name,Name_FR,goldstandard_values,sli_values,diff_count,diff_prop
+3,Beacon Hill South - Cardinal Heights,Beacon Hill Sud - Cardinal Heights,7260,7319,59,0.008126721763085399
+6,Bells Corners East,Bells Corners Est,4580,4926,346,0.07554585152838428
+7,Bells Corners West,Bells Corners Ouest,4140,4346,206,0.049758454106280194
+11,Braemar Park - Bel Air Heights - Copeland Park,Parc Braemar - Hauteurs Bel Air - Parc Copeland,6770,6915,145,0.02141802067946824
+12,Briar Green - Leslie Park,Briar Green - Parc Leslie,5180,5248,68,0.013127413127413128
+13,Bridlewood - Emerald Meadows, ,24240,24400,160,0.006600660066006601
+16,Carleton Heights - Rideauview,Hauteurs Carleton - Rideauview,6385,6647,262,0.04103367267032106
+18,Carlington, ,9820,10141,321,0.032688391038696536
+23,Centrepointe, ,6970,7245,275,0.03945480631276901
+24,Centretown,Centre-Ville,27985,28699,714,0.025513668036448098
+28,Civic Hospital-Central Park,Hôpital Civique - Parc Central,10920,11763,843,0.0771978021978022
+29,Constance Bay,Baie Constance,2225,2314,89,0.04
+30,Corkery, ,3680,4288,608,0.16521739130434782
+31,Cityview - Crestview - Meadowlands, ,8645,8820,175,0.020242914979757085
+32,Crystal Bay - Lakeview Park,Baie Crystal - Parc Lakeview,3835,3962,127,0.033116036505867016
+35,Dunrobin, ,5900,5716,-184,-0.031186440677966103
+38,Emerald Woods - Sawmill Creek, ,5610,5471,-139,-0.024777183600713012
+45,Greenboro East,Greenboro Est,10650,11064,414,0.038873239436619716
+46,Hawthorne Meadows - Sheffield Glen, ,6640,6610,-30,-0.004518072289156626
+47,Hintonburg - Mechanicsville, ,9780,9999,219,0.022392638036809815
+48,Hunt Club - Ottawa Airport,Hunt Club - Aéroport d'Ottawa,2015,2161,146,0.07245657568238213
+49,Hunt Club East - Western Community,Hunt Club Est - Communauté de l'Ouest,10505,10610,105,0.009995240361732508
+50,Hunt Club Park,Parc Hunt Club,8820,8825,5,5.668934240362812e-4
+51,Hunt Club South Industrial,Hunt Club Sud Industriel,825,1392,567,0.6872727272727273
+52,Hunt Club Upper -Blossom Park - Timbermill,Hunt Club Supérieur - Parc Blossom - Timbermill,8365,8719,354,0.042319187089061565
+54,Iris - Queensway Terrance South,Iris - Queensway Terrance Sud,5885,6041,156,0.026508071367884453
+55,Island Park - Wellington Village,Island Park - Village Wellington,5760,5432,-328,-0.05694444444444444
+60,Lebreton Development,Développement Lebreton,590,620,30,0.05084745762711865
+64,Manotick, ,9115,9439,324,0.03554580362040592
+65,Merivale Gardens - Grenfell Glen - Pineglen - Country Place,Merivale Gardens - Grenfell Glen - Pineglen - Country Place,2970,2558,-412,-0.13872053872053872
+66,Metcalfe, ,5225,5019,-206,-0.03942583732057416
+67,Munster - Ashton, ,3605,3812,207,0.05742024965325936
+70,North Gower - Kars, ,5250,5310,60,0.011428571428571429
+75,Chapel Hill South,Chapel Hill Sud,10055,10308,253,0.025161611138736946
+76,Chatelaine Village,Village Chatelaine,4210,4206,-4,-9.501187648456057e-4
+77,Orléans Industrial,Orléans Industriel,170,495,325,1.911764705882353
+81,Osgoode - Vernon, ,5360,5414,54,0.010074626865671642
+82,Old Ottawa East,Vieil Ottawa-Est,7350,7250,-100,-0.013605442176870748
+83,Old Ottawa South,Vieil Ottawa-Sud,6210,6578,368,0.05925925925925926
+85,Marlborough, ,1890,2204,314,0.16613756613756614
+86,Pineview, ,6135,6183,48,0.007823960880195598
+87,Playfair Park - Lynda Park - Guildwood Estates,Parc Playfair - Parc Lynda - Domaines Guildwood,5955,5961,6,0.0010075566750629723
+88,Qualicum - Redwood Park,Qualicum - Parc Redwood,4280,4715,435,0.10163551401869159
+90,Riverside Park,Parc Riverside,4455,4617,162,0.03636363636363636
+93,Rothwell Heights - Beacon Hill North,Rothwell Heights - Beacon Hill Nord,10305,10841,536,0.05201358563803979
+97,South Keys - Greenboro West,South Keys - Greenboro Ouest,4230,3749,-481,-0.11371158392434988
+99,Tanglewood, ,4725,4738,13,0.0027513227513227515
+100,Trend-Arlington, ,4890,4776,-114,-0.023312883435582823
+106,Whitehaven - Queensway Terrace North,Whitehaven - Terrasse Queensway Nord,11455,12051,596,0.05202968136185072
+108,Woodvale - Craig Henry - Manordale - Estates of Arlington Woods,Woodvale - Craig Henry - Manordale - Domaines des Bois d'Arlington,8215,8368,153,0.01862446743761412
+901,Bayshore - Belltown, ,9210,9155,-55,-0.005971769815418024
+902,Beaverbrook, ,6540,6798,258,0.03944954128440367
+903,Billings Bridge - Alta Vista, ,12645,12882,237,0.01874258600237248
+904,Blackburn Hamlet, ,8105,8167,62,0.007649599012954966
+905,Borden Farm - Fisher Glen, ,7265,7267,2,2.752924982794219e-4
+906,Britannia Village, ,6375,6360,-15,-0.002352941176470588
+907,Brookside - Briarbrook - Morgan's Grant, ,15785,15740,-45,-0.0028508077288565093
+908,Byward Market,Marché By,5115,5824,709,0.1386119257086999
+909,Cardinal Creek, ,11325,11352,27,0.0023841059602649007
+910,Carlingwood West - Glabar Park - McKellar Heights, ,9075,9279,204,0.022479338842975205
+911,Carp, ,6655,6942,287,0.04312546957175056
+912,Carson Grove - Carson Meadows, ,11175,11593,418,0.03740492170022371
+913,Chapel Hill North, ,10605,10799,194,0.018293257897218293
+914,Chapman Mills, ,12020,13357,1337,0.11123128119800332
+915,Convent Glen - Orléans Woods, ,14785,14778,-7,-4.734528238079134e-4
+916,Cumberland, ,4210,4969,759,0.1802850356294537
+917,East Industrial,Industriel-Est,1765,1798,33,0.018696883852691217
+918,Edwards - Carlsbad Springs, ,3555,3741,186,0.05232067510548523
+919,Elmvale - Canterbury, ,11635,12108,473,0.040653201547056296
+920,Fallingbrook, ,18800,18447,-353,-0.018776595744680852
+921,Findlay Creek, ,8735,8865,130,0.014882655981682884
+922,Fitzroy, ,3230,3231,1,3.0959752321981426e-4
+923,Glebe - Dows Lake,Glebe – Lac Dows,12675,13477,802,0.06327416173570019
+924,Glen Cairn - Kanata South Business Park,Glen Cairn - Parc d'Affaires Kanata-Sud,11090,9885,-1205,-0.10865644724977457
+925,Greely, ,9840,9614,-226,-0.02296747967479675
+926,Greenbelt,Ceinture de Verdure,1630,1605,-25,-0.015337423312883436
+927,Hunt Club Woods - Quintarra - Revelstoke,Hunt Club Woods - Quintarra - Revelstoke,6040,6329,289,0.0478476821192053
+928,Kanata Lakes - Arcardia, ,16475,16837,362,0.02197268588770865
+929,Katimavik - Hazeldean, ,11370,11617,247,0.02172383465259455
+930,Kinburn, ,1965,2123,158,0.08040712468193384
+931,Laurentian, ,9680,9816,136,0.014049586776859505
+932,Ledbury - Heron Gate - Ridgemont, ,13485,13578,93,0.006896551724137931
+933,Lindenlea - New Edinburgh, ,4910,5128,218,0.04439918533604888
+934,Lowertown,Basse-ville,6205,6692,487,0.07848509266720387
+935,Manor Park, ,6995,7032,37,0.0052894924946390275
+936,Navan - Sarsfield, ,4145,4181,36,0.008685162846803377
+937,Old Barrhaven East,Old Barrhaven Est,25285,24327,-958,-0.037888075934348425
+938,Old Barrhaven West,Old Barrhaven Ouest,17975,14436,-3539,-0.19688456189151599
+939,Orléans Village - Chateauneuf, ,10370,10376,6,5.785920925747348e-4
+940,Overbrook - McArthur, ,19150,19359,209,0.010913838120104439
+941,Parkwood Hills - Stewart Farm, ,5335,5328,-7,-0.0013120899718837863
+942,Portobello South, ,23035,23459,424,0.018406772303017148
+943,Queenswood Heights, ,12240,12468,228,0.018627450980392157
+944,Richmond, ,7535,7665,130,0.017252820172528202
+945,Rideau Crest - Davidson Heights, ,14470,14798,328,0.022667588113337942
+946,Riverside South - Leitrim,Riverside Sud - Leitrim,14020,14064,44,0.003138373751783167
+947,Riverview, ,6055,6485,430,0.07101568951279934
+948,Rockcliffe Park,Parc Rockcliffe,2000,1932,-68,-0.034
+949,Sandy Hill,Côte-de-Sable,11480,12667,1187,0.10339721254355401
+950,Skyline - Fisher Heights, ,4145,3652,-493,-0.1189384800965018
+951,Stittsville, ,31395,31983,588,0.018729096989966554
+952,Stonebridge - Half Moon Bay - Heart's Desire, ,16620,19346,2726,0.16401925391095065
+953,Vanier North,Vanier Nord,10320,10490,170,0.016472868217054265
+954,Vanier South,Vanier Sud,6540,6360,-180,-0.027522935779816515
+955,Vars, ,2540,2729,189,0.07440944881889763
+956,Wateridge Village,Village des Riverains,255,690,435,1.7058823529411764
+957,West Centretown,Centre-Ville Ouest,9460,9618,158,0.016701902748414377
+958,Westboro, ,11440,12360,920,0.08041958041958042

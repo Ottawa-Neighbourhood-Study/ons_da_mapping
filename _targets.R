@@ -268,9 +268,12 @@ list(
                         dplyr::select(ONS_ID, ons_pop2016 = value) %>%
                         dplyr::mutate(ons_pop2016 = as.numeric(ons_pop2016))
 
+
                       ons_shp %>%
                         dplyr::mutate(ONS_ID = as.character(ONS_ID)) %>%
-                        left_join(tempdata)
+                        left_join(tempdata)%>%
+                        dplyr::mutate(ons_pop2016 = dplyr::if_else(is.na(ons_pop2016), 0, ons_pop2016)) %>%
+                        dplyr::filter( ons_pop2016 != 0) # NOTE! Removing rows with 0 so that we never assign them any values.
   }
                       ),
 
